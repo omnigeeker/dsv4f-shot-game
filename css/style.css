@@ -24,6 +24,7 @@ html, body {
   position: absolute;
   left: 50%; top: 50%;
   width: 0; height: 0;
+  --gap: 8px;
   transition: none;
 }
 .ch-bar {
@@ -31,16 +32,23 @@ html, body {
   background: rgba(210, 255, 160, 0.95);
   box-shadow: 0 0 3px rgba(0,0,0,0.9);
 }
-.ch-top    { width: 2px; height: 11px; left: -1px; top: -20px; }
-.ch-bottom { width: 2px; height: 11px; left: -1px; top: 9px; }
-.ch-left   { width: 11px; height: 2px; left: -20px; top: -1px; }
-.ch-right  { width: 11px; height: 2px; left: 9px; top: -1px; }
+.ch-top    { width: 2px; height: 11px; left: -1px; top: calc(-13px - var(--gap)); }
+.ch-bottom { width: 2px; height: 11px; left: -1px; top: calc(2px + var(--gap)); }
+.ch-left   { width: 11px; height: 2px; left: calc(-13px - var(--gap)); top: -1px; }
+.ch-right  { width: 11px; height: 2px; left: calc(2px + var(--gap)); top: -1px; }
 #ch-dot {
   position: absolute;
   width: 2px; height: 2px;
   left: -1px; top: -1px;
   background: rgba(210, 255, 160, 0.9);
   border-radius: 50%;
+}
+#reload-msg {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #ffb347;
+  margin-top: 6px;
+  text-shadow: 0 2px 3px #000;
 }
 
 /* ---- 命中标记 ---- */
