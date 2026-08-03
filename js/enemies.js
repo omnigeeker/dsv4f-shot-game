@@ -10,11 +10,11 @@ window.ENEMIES = (function () {
 
   /* ---------- 基础材质（每机器人克隆） ---------- */
   const baseMats = {
-    cloth: new THREE.MeshStandardMaterial({ color: 0x40483c, roughness: 0.9, metalness: 0 }),
-    pants: new THREE.MeshStandardMaterial({ color: 0x3a342c, roughness: 0.95, metalness: 0 }),
-    skin: new THREE.MeshStandardMaterial({ color: 0x7a5c42, roughness: 0.85, metalness: 0 }),
-    gun: new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.5, metalness: 0.6 }),
-    cap: new THREE.MeshStandardMaterial({ color: 0x2c3026, roughness: 0.8, metalness: 0 })
+    cloth: new THREE.MeshStandardMaterial({ color: 0x57624c, roughness: 0.9, metalness: 0, emissive: 0x1a2434, emissiveIntensity: 0.35 }),
+    pants: new THREE.MeshStandardMaterial({ color: 0x4c4638, roughness: 0.95, metalness: 0, emissive: 0x141c28, emissiveIntensity: 0.3 }),
+    skin: new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 0.85, metalness: 0, emissive: 0x221408, emissiveIntensity: 0.25 }),
+    gun: new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.5, metalness: 0.6 }),
+    cap: new THREE.MeshStandardMaterial({ color: 0x3a3f32, roughness: 0.8, metalness: 0, emissive: 0x1a2434, emissiveIntensity: 0.3 })
   };
 
   function buildModel() {
@@ -119,7 +119,9 @@ window.ENEMIES = (function () {
         walkPhase: 0, stepAcc: 0,
         shootAnim: 0
       };
+      bot.damage = (d) => damage(bot, d);
       for (const m of hitMeshes) if (m.userData.enemy === null && m.parent === model.group) m.userData.enemy = bot;
+      bot.parts = model.parts;
       bot.eye = _v.set(0, 1.35, 0).clone();
       bot.group = model.group;
       bot.group.position.copy(bot.pos);
@@ -138,7 +140,7 @@ window.ENEMIES = (function () {
         bot.dead = true;
         stats.kills++;
         if (window.AUDIO) AUDIO.enemyDeath();
-        if (window.WEAPONS) WEAPONS.spawnBurst(bot.pos.clone().setY(1), 0x8a1a1a, 16, 3.4, 0.5, 0.8, 1);
+        if (window.WEAPONS && WEAPONS.instance) WEAPONS.instance.spawnBurst(bot.pos.clone().setY(1), 0x8a1a1a, 16, 3.4, 0.5, 0.8, 1);
         if (onKill) onKill(bot);
         return true;
       }
@@ -215,9 +217,9 @@ window.ENEMIES = (function () {
       const dist = toP.length();
       const los = hasLOS(bot, player);
 
-      // 朝向玩家
+      // 朝向玩家（yaw=0 面向 -z，故取 -dx/-dz）
       if (dist > 0.001) {
-        bot.group.rotation.y = Math.atan2(toP.x, toP.z);
+        bot.group.rotation.y = Math.atan2(-toP.x, -toP.z);
       }
 
       let moving = false;

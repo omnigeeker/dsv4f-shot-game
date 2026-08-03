@@ -13,6 +13,7 @@ window.WEAPONS = (function () {
     const vel = new Float32Array(MAX * 3);
     const life = new Float32Array(MAX);
     const maxLife = new Float32Array(MAX);
+    const gravA = new Float32Array(MAX);
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     const pts = new THREE.Points(geo, new THREE.PointsMaterial({
@@ -30,6 +31,7 @@ window.WEAPONS = (function () {
           vel[i * 3] = (Math.random() - 0.5) * speed * s;
           vel[i * 3 + 1] = (Math.random() - 0.5) * speed * s + (grav ? 1.5 : 0);
           vel[i * 3 + 2] = (Math.random() - 0.5) * speed * s;
+          gravA[i] = (grav !== undefined ? grav : 0.5);
           pos[i * 3] = center.x; pos[i * 3 + 1] = center.y; pos[i * 3 + 2] = center.z;
           const cc = new THREE.Color(color);
           const v = 0.6 + Math.random() * 0.4;
@@ -44,7 +46,7 @@ window.WEAPONS = (function () {
         if (life[i] > 0) {
           any = true;
           life[i] -= dt;
-          vel[i * 3 + 1] -= 14 * dt * (grav !== undefined ? grav : 0.5);
+          vel[i * 3 + 1] -= 14 * dt * gravA[i];
           pos[i * 3] += vel[i * 3] * dt;
           pos[i * 3 + 1] += vel[i * 3 + 1] * dt;
           pos[i * 3 + 2] += vel[i * 3 + 2] * dt;
@@ -383,6 +385,8 @@ window.WEAPONS = (function () {
     state.setActive = (a) => { state.active = a; if (!a) { state.fireHeld = false; state.semiFired = false; } };
     state.spawnBurst = FX.spawnBurst;
     state.fxPoints = FX.pts;
+    state.update = update;
+    window.WEAPONS.instance = state;
 
     window.addEventListener('keydown', onKey);
     window.addEventListener('mousedown', onMouseDown);

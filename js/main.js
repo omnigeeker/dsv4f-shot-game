@@ -11,7 +11,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.9;
   document.getElementById('game').appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -21,22 +21,22 @@
   // ---------- 世界 ----------
   WORLD.build(scene);
 
-  // ---------- 玩家 / 武器 / 敌人 ----------
+  // ---------- 玩家 / 敌人 / 武器 ----------
   const player = PLAYER.create(camera, renderer.domElement);
+  const enemies = ENEMIES.create(scene, {
+    player,
+    onWaveStart: (n) => UI.waveBanner(n),
+    onKill: () => UI.killfeed('<span class="kf-kill">击毙</span> 恐怖分子')
+  });
   const weapons = WEAPONS.create(camera, scene, {
     player,
-    getEnemies: () => ENEMIES.getEnemies(),
-    resolveHit: (m) => ENEMIES.resolveHit(m),
+    getEnemies: () => enemies.getEnemies(),
+    resolveHit: (m) => enemies.resolveHit(m),
     onEnemyDamaged: (enemy, isHead, killed) => {
       UI.hitmarker(killed);
       if (isHead) UI.hitLabel('爆头');
       if (killed) UI.killfeed('<span class="kf-kill">+击杀</span> 恐怖分子');
     }
-  });
-  const enemies = ENEMIES.create(scene, {
-    player,
-    onWaveStart: (n) => UI.waveBanner(n),
-    onKill: () => UI.killfeed('<span class="kf-kill">击毙</span> 恐怖分子')
   });
 
   // ---------- 状态机 ----------
@@ -76,14 +76,20 @@
     player.active = true;
     UI.setScreen('hud');
     state.mode = 'playing';
-    renderer.domElement.requestPointerLock();
+    lockPointer();
   }
   function resumeGame() {
     weapons.setActive(true);
     player.active = true;
     UI.setScreen('hud');
     state.mode = 'playing';
-    renderer.domElement.requestPointerLock();
+    lockPointer();
+  }
+  function lockPointer() {
+    try {
+      const p = renderer.domElement.requestPointerLock();
+      if (p && typeof p.catch === 'function') p.catch(() => { });
+    } catch (e) { /* 无头/无焦点环境忽略 */ }
   }
 
   // ---------- UI 处理器 ----------
@@ -151,4 +157,7 @@
     renderer.render(scene, camera);
   }
   requestAnimationFrame(loop);
+
+  // 调试句柄
+  window.__game = { player, weapons, enemies, scene, camera, renderer, get state() { return state; } };
 })();

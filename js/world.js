@@ -89,7 +89,7 @@ window.WORLD = (function () {
     const len = dir.length();
     const cone = new THREE.ConeGeometry(2.6, len, 12, 1, true);
     const coneMat = new THREE.MeshBasicMaterial({
-      color: color, transparent: true, opacity: 0.05,
+      color: color, transparent: true, opacity: 0.13,
       blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
     });
     const coneMesh = new THREE.Mesh(cone, coneMat);
@@ -98,8 +98,8 @@ window.WORLD = (function () {
     group.add(coneMesh);
 
     // 地面光池
-    const pool = new THREE.Mesh(new THREE.CircleGeometry(3.2, 24), new THREE.MeshBasicMaterial({
-      color: color, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(4.6, 24), new THREE.MeshBasicMaterial({
+      color: color, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false
     }));
     pool.rotation.x = -Math.PI / 2;
     pool.position.set(tx, 0.12, tz);
@@ -115,17 +115,17 @@ window.WORLD = (function () {
   /* ---------- 主建图 ---------- */
   function build(scene) {
     scene.add(group);
-    scene.fog = new THREE.Fog(0x0a0e18, 22, 150);
+    scene.fog = new THREE.Fog(0x0d1520, 22, 150);
 
     // ===== 天空（渐变 + 星 + 月亮） =====
     const sky = document.createElement('canvas'); sky.width = 64; sky.height = 512;
     const sctx = sky.getContext('2d');
     const grad = sctx.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0.0, '#050810');
-    grad.addColorStop(0.42, '#0b1224');
-    grad.addColorStop(0.66, '#1a2238');
-    grad.addColorStop(0.82, '#463a28');
-    grad.addColorStop(1.0, '#6a4f2c');
+    grad.addColorStop(0.0, '#101a30');
+    grad.addColorStop(0.42, '#1a2540');
+    grad.addColorStop(0.66, '#2c3c5e');
+    grad.addColorStop(0.82, '#6a5230');
+    grad.addColorStop(1.0, '#a5823e');
     sctx.fillStyle = grad; sctx.fillRect(0, 0, 64, 512);
     const skyTex = new THREE.CanvasTexture(sky);
     skyTex.colorSpace = THREE.SRGBColorSpace;
@@ -165,9 +165,9 @@ window.WORLD = (function () {
     group.add(moonGlow);
 
     // ===== 灯光 =====
-    scene.add(new THREE.AmbientLight(0x24304a, 0.55));
-    scene.add(new THREE.HemisphereLight(0x3a4a66, 0x161210, 0.55));
-    const moonLight = new THREE.DirectionalLight(0x8fa6d6, 0.8);
+    scene.add(new THREE.AmbientLight(0x31405e, 1.1));
+    scene.add(new THREE.HemisphereLight(0x5566a0, 0x241f12, 1.0));
+    const moonLight = new THREE.DirectionalLight(0xaabcf0, 1.5);
     moonLight.position.set(45, 70, 25);
     moonLight.castShadow = true;
     moonLight.shadow.mapSize.set(2048, 2048);
@@ -179,10 +179,13 @@ window.WORLD = (function () {
     scene.add(moonLight); scene.add(moonLight.target);
 
     // 探照灯 ×4（暖色光池）
-    addFloodlight(-32, 24, -18, 8, 0xffc27a, 3.0, 0.5, 0.25);
-    addFloodlight(34, -6, 18, 0, 0xffb86a, 3.0, 0.55, 0.2);
-    addFloodlight(0, -44, 0, -18, 0xffd08a, 2.6, 0.6, 0.15);
-    addFloodlight(-44, -40, -28, -22, 0xffcf8f, 2.2, 0.45, 0.3);
+    addFloodlight(-32, 24, -18, 8, 0xffc27a, 9.0, 0.5, 0.25);
+    addFloodlight(34, -6, 18, 0, 0xffb86a, 9.0, 0.55, 0.2);
+    addFloodlight(0, -44, 0, -18, 0xffd08a, 8.0, 0.6, 0.15);
+    addFloodlight(-44, -40, -28, -22, 0xffcf8f, 7.0, 0.45, 0.3);
+    // 出生区附近两盏（开场即有暖色光池）
+    addFloodlight(-12, 48, -10, 28, 0xffd9a0, 8.0, 0.42, 0.18);
+    addFloodlight(14, 48, 12, 28, 0xffc98a, 8.0, 0.42, 0.18);
 
     // ===== 地面 =====
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), mDirt);
@@ -190,6 +193,7 @@ window.WORLD = (function () {
     ground.receiveShadow = true;
     group.add(ground);
     hitTargets.push(ground);
+    colliders.push({ minX: -65, minY: 0, minZ: -65, maxX: 65, maxY: 0.02, maxZ: 65 });
 
     // ===== 围墙（外围，南侧留门） =====
     addWall(0, -55, 110, 7, 1);    // 北墙
@@ -279,7 +283,7 @@ window.WORLD = (function () {
       new THREE.Vector3(-44, 0, -44), new THREE.Vector3(44, 0, -44),
       new THREE.Vector3(44, 0, -30), new THREE.Vector3(-44, 0, 30),
       new THREE.Vector3(0, 0, -46), new THREE.Vector3(-28, 0, 44),
-      new THREE.Vector3(30, 0, 44), new THREE.Vector3(0, 0, 48)
+      new THREE.Vector3(30, 0, 44), new THREE.Vector3(44, 0, 40)
     );
   }
 
@@ -298,6 +302,6 @@ window.WORLD = (function () {
     get colliders() { return colliders; },
     get hitTargets() { return hitTargets; },
     get enemySpawnPoints() { return enemySpawnPoints; },
-    playerSpawn: { pos: new THREE.Vector3(0, 0, 42), yaw: Math.PI }
+    playerSpawn: { pos: new THREE.Vector3(0, 0, 42), yaw: 0 }
   };
 })();

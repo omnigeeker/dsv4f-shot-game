@@ -190,6 +190,9 @@ window.PLAYER = (function () {
       }
       p.landTime -= dt;
 
+      // 防掉落兜底
+      if (p.pos.y < -20) { p.pos.y = 0; p.vel.y = 0; p.onGround = true; }
+
       // 镜头晃动（脚步声节奏）
       const hSpeed = Math.hypot(p.vel.x, p.vel.z);
       if (p.onGround && hSpeed > 0.8) {
