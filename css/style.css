@@ -1,0 +1,380 @@
+/* ============ 基础 ============ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  font-family: "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#game { position: fixed; inset: 0; }
+#game canvas { display: block; }
+
+.hidden { display: none !important; }
+
+/* ============ HUD ============ */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+
+/* ---- 动态准星 ---- */
+#crosshair {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 0; height: 0;
+  transition: none;
+}
+.ch-bar {
+  position: absolute;
+  background: rgba(210, 255, 160, 0.95);
+  box-shadow: 0 0 3px rgba(0,0,0,0.9);
+}
+.ch-top    { width: 2px; height: 11px; left: -1px; top: -20px; }
+.ch-bottom { width: 2px; height: 11px; left: -1px; top: 9px; }
+.ch-left   { width: 11px; height: 2px; left: -20px; top: -1px; }
+.ch-right  { width: 11px; height: 2px; left: 9px; top: -1px; }
+#ch-dot {
+  position: absolute;
+  width: 2px; height: 2px;
+  left: -1px; top: -1px;
+  background: rgba(210, 255, 160, 0.9);
+  border-radius: 50%;
+}
+
+/* ---- 命中标记 ---- */
+#hitmarker {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 0; height: 0;
+  opacity: 0;
+}
+#hitmarker.show { animation: hmPop 0.18s ease-out; }
+@keyframes hmPop {
+  0% { opacity: 0.95; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+.hm {
+  position: absolute;
+  width: 8px; height: 2px;
+  background: #fff;
+  box-shadow: 0 0 2px #000;
+}
+.hm-tl { left: -12px; top: -2px; transform: rotate(-45deg); }
+.hm-tr { left: 4px;  top: -2px; transform: rotate(45deg); }
+.hm-bl { left: -12px; top: 0px; transform: rotate(45deg); }
+.hm-br { left: 4px;  top: 0px; transform: rotate(-45deg); }
+#hitmarker.kill .hm { background: #ff3b3b; }
+
+/* ---- 受伤红晕 ---- */
+#damage-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,0,0,0) 40%, rgba(255,0,0,0.55) 100%);
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+#damage-dir {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+#damage-dir::before {
+  content: "◤";
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%) rotate(var(--deg, 0deg));
+  font-size: 60px;
+  color: #ff2d2d;
+  margin-left: 120px;
+  text-shadow: 0 0 8px rgba(255,0,0,0.7);
+}
+
+/* ---- 左下：状态 ---- */
+#status {
+  position: absolute;
+  left: 28px; bottom: 26px;
+  display: flex;
+  gap: 22px;
+  align-items: flex-end;
+}
+.stat-block { display: flex; align-items: center; gap: 8px; }
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #9fb08a;
+  writing-mode: vertical-rl;
+}
+.bar {
+  width: 150px;
+  height: 14px;
+  background: rgba(10, 16, 8, 0.72);
+  border: 1px solid rgba(150, 180, 120, 0.4);
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+}
+.bar-thin { height: 8px; width: 110px; }
+.bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(180deg, #b6ff7a, #5fbf2a);
+  box-shadow: 0 0 8px rgba(120, 255, 80, 0.5);
+  transition: width 0.18s ease-out;
+}
+.bar-fill.armor {
+  background: linear-gradient(180deg, #8fd7ff, #2d86c9);
+  box-shadow: 0 0 8px rgba(90, 180, 255, 0.5);
+}
+.stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e8ffce;
+  text-shadow: 0 0 6px rgba(120, 255, 80, 0.4);
+  min-width: 44px;
+}
+#hp-fill.low { background: linear-gradient(180deg, #ff9d6b, #e23b2a); box-shadow: 0 0 10px rgba(255,60,40,0.7); }
+
+/* ---- 右下：弹药 ---- */
+#ammo {
+  position: absolute;
+  right: 40px; bottom: 30px;
+  text-align: right;
+  font-family: "Courier New", monospace;
+}
+#ammo-mag {
+  font-size: 56px;
+  font-weight: 800;
+  color: #f5ffdc;
+  text-shadow: 0 0 12px rgba(140,255,100,0.4), 0 2px 4px rgba(0,0,0,0.8);
+  line-height: 1;
+}
+#ammo-mag.low { color: #ffb347; text-shadow: 0 0 12px rgba(255,150,40,0.6); }
+#ammo-mag.empty { color: #ff4646; text-shadow: 0 0 12px rgba(255,40,40,0.7); }
+#ammo-reserve {
+  font-size: 18px;
+  color: #aeb894;
+  text-shadow: 0 2px 3px rgba(0,0,0,0.8);
+}
+#weapon-name {
+  position: absolute;
+  right: 40px; bottom: 116px;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: #c4d4a6;
+  text-transform: uppercase;
+  text-shadow: 0 2px 3px rgba(0,0,0,0.9);
+}
+
+/* ---- 顶部中央：波次 ---- */
+#wave-banner {
+  position: absolute;
+  left: 50%; top: 12%;
+  transform: translateX(-50%);
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  color: #fff;
+  text-shadow: 0 0 24px rgba(255,140,40,0.8), 0 0 60px rgba(255,80,0,0.5);
+  opacity: 0;
+}
+#wave-banner.show { animation: waveBanner 2.4s ease-out forwards; }
+@keyframes waveBanner {
+  0% { opacity: 0; transform: translateX(-50%) scale(1.4); letter-spacing: 20px; }
+  18% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) scale(1); }
+}
+#wave-timer {
+  position: absolute;
+  left: 50%; top: 7%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: #ffb07a;
+  text-shadow: 0 2px 4px #000;
+  opacity: 0.9;
+}
+
+/* ---- 右上：击杀播报 ---- */
+#killfeed {
+  position: absolute;
+  right: 20px; top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+.kf-item {
+  background: rgba(8, 12, 6, 0.72);
+  border: 1px solid rgba(120, 160, 90, 0.35);
+  border-left: 3px solid #9dff4d;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: #e6ffc9;
+  text-shadow: 0 1px 2px #000;
+  animation: kfIn 0.2s ease-out, kfOut 0.4s ease-in 3.4s forwards;
+}
+.kf-item .kf-kill { color: #9dff4d; font-weight: 700; }
+@keyframes kfIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes kfOut { to { transform: translateX(30px); opacity: 0; } }
+
+/* ---- 左上：战绩 ---- */
+#score {
+  position: absolute;
+  left: 28px; top: 22px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #e8ffce;
+  text-shadow: 0 2px 4px #000;
+}
+#score .score-sep { color: #6b7a58; margin: 0 6px; }
+#kills-num { color: #9dff4d; }
+
+/* ---- 小地图 ---- */
+#minimap-wrap {
+  position: absolute;
+  right: 22px; bottom: 22px;
+  width: 180px; height: 180px;
+  border: 2px solid rgba(120, 160, 90, 0.5);
+  background: rgba(8, 12, 6, 0.55);
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.8);
+}
+#minimap-canvas { width: 100%; height: 100%; display: block; }
+
+/* ---- 低血量警告 ---- */
+#lowhp {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,0,0,0) 55%, rgba(200,0,0,0.4) 100%);
+  opacity: 0;
+  animation: lowHp 1.4s ease-in-out infinite;
+}
+@keyframes lowHp { 0%,100% { opacity: 0; } 50% { opacity: 0.85; } }
+
+/* ============ 覆盖层 / 菜单 ============ */
+.overlay {
+  position: fixed; inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  background:
+    radial-gradient(ellipse at center, rgba(14,18,12,0.72) 0%, rgba(4,6,4,0.88) 100%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 4px);
+}
+.menu-box {
+  text-align: center;
+  max-width: 640px;
+  padding: 50px 60px;
+  border: 1px solid rgba(150, 190, 110, 0.35);
+  background: linear-gradient(180deg, rgba(12,18,10,0.92), rgba(6,9,5,0.94));
+  box-shadow: 0 0 80px rgba(0,0,0,0.9), inset 0 0 60px rgba(0,0,0,0.6);
+  animation: menuIn 0.5s ease-out;
+}
+.menu-box.small { max-width: 460px; padding: 40px 48px; }
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.menu-kicker {
+  font-size: 12px;
+  letter-spacing: 6px;
+  color: #ffb347;
+  margin-bottom: 14px;
+}
+.menu-title {
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: 16px;
+  color: #f0ffd6;
+  text-shadow: 0 0 30px rgba(140,255,90,0.35), 0 4px 0 rgba(0,0,0,0.6);
+  margin-bottom: 6px;
+}
+.menu-title.small { font-size: 44px; letter-spacing: 12px; }
+.menu-title.danger { color: #ff5a4d; text-shadow: 0 0 30px rgba(255,50,40,0.5), 0 4px 0 rgba(0,0,0,0.6); }
+.menu-subtitle {
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: #93a87a;
+  margin-bottom: 26px;
+}
+.briefing {
+  font-size: 15px;
+  line-height: 1.9;
+  color: #c9d8b2;
+  margin-bottom: 34px;
+}
+.menu-btn {
+  display: inline-block;
+  padding: 14px 46px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #0d1a06;
+  background: linear-gradient(180deg, #b6ff7a, #6fce2e);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 24px rgba(140,255,80,0.4), 0 6px 0 #4a8f1d;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  margin: 6px;
+}
+.menu-btn:hover { transform: translateY(-2px); box-shadow: 0 0 34px rgba(140,255,80,0.6), 0 8px 0 #4a8f1d; }
+.menu-btn:active { transform: translateY(2px); box-shadow: 0 0 20px rgba(140,255,80,0.4), 0 2px 0 #4a8f1d; }
+.menu-btn.ghost {
+  color: #c9d8b2;
+  background: rgba(255,255,255,0.06);
+  box-shadow: none;
+  border: 1px solid rgba(150,190,110,0.4);
+}
+.menu-btn.ghost:hover { background: rgba(255,255,255,0.12); transform: none; }
+.controls-hint {
+  margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  font-size: 12px;
+  color: #7f9270;
+}
+.controls-hint b {
+  color: #d7e8bd;
+  background: rgba(255,255,255,0.07);
+  padding: 2px 6px;
+  border: 1px solid rgba(150,190,110,0.25);
+  font-weight: 700;
+}
+#death-stats {
+  font-size: 18px;
+  color: #e6ffc9;
+  line-height: 2;
+  margin: 10px 0 24px;
+}
+#death-stats .ds-val { color: #9dff4d; font-weight: 800; font-size: 26px; }
+
+/* 命中提示标签 */
+#hit-label {
+  position: absolute;
+  left: 50%; top: 44%;
+  transform: translateX(-50%);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #ffb347;
+  text-shadow: 0 0 8px rgba(255,150,40,0.8);
+  opacity: 0;
+  z-index: 15;
+}
+#hit-label.show { animation: labelPop 0.4s ease-out; }
+@keyframes labelPop { 0% { opacity: 0; transform: translate(-50%, 6px) scale(0.8); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+
+/* 加载遮罩 */
+#loading {
+  position: fixed; inset: 0;
+  z-index: 99;
+  background: #050705;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9dff4d;
+  font-size: 15px;
+  letter-spacing: 4px;
+}

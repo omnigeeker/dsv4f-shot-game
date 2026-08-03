@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>废弃基地 — 战术射击</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Three.js 渲染容器 -->
+  <div id="game"></div>
+
+  <!-- ========== HUD ========== -->
+  <div id="hud" class="hidden">
+
+    <!-- 动态准星 -->
+    <div id="crosshair">
+      <span class="ch-bar ch-top"></span>
+      <span class="ch-bar ch-bottom"></span>
+      <span class="ch-bar ch-left"></span>
+      <span class="ch-bar ch-right"></span>
+      <span id="ch-dot"></span>
+    </div>
+
+    <!-- 命中标记 -->
+    <div id="hitmarker">
+      <span class="hm hm-tl"></span>
+      <span class="hm hm-tr"></span>
+      <span class="hm hm-bl"></span>
+      <span class="hm hm-br"></span>
+    </div>
+
+    <!-- 受伤红色渐变 -->
+    <div id="damage-vignette"></div>
+    <!-- 受伤方向指示 -->
+    <div id="damage-dir"></div>
+
+    <!-- 左下：状态 -->
+    <div id="status">
+      <div class="stat-block">
+        <div class="stat-label">HP</div>
+        <div class="bar" id="hp-bar"><div id="hp-fill" class="bar-fill"></div></div>
+        <div class="stat-num" id="hp-num">100</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">ARMOR</div>
+        <div class="bar bar-thin" id="armor-bar"><div id="armor-fill" class="bar-fill armor"></div></div>
+        <div class="stat-num" id="armor-num">50</div>
+      </div>
+    </div>
+
+    <!-- 右下：弹药 -->
+    <div id="ammo">
+      <div id="ammo-mag">30</div>
+      <div id="ammo-reserve">/ 90</div>
+    </div>
+    <div id="weapon-name">AK-47</div>
+
+    <!-- 顶部中央：波次 -->
+    <div id="wave-banner">WAVE 1</div>
+    <div id="wave-timer">下一波：00:15</div>
+
+    <!-- 右上：击杀播报 -->
+    <div id="killfeed"></div>
+
+    <!-- 左上：战绩 -->
+    <div id="score">
+      <span id="kills-num">0</span> 击杀
+      <span class="score-sep">·</span>
+      <span id="wave-num">1</span> 波
+    </div>
+
+    <!-- 小地图 -->
+    <div id="minimap-wrap">
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
+    </div>
+
+    <!-- 枪口红光 / 低血量警告 -->
+    <div id="lowhp"></div>
+  </div>
+
+  <!-- ========== 开始界面 ========== -->
+  <div id="menu" class="overlay">
+    <div class="menu-box">
+      <div class="menu-kicker">SECURE THE SITE</div>
+      <h1 class="menu-title">废 弃 基 地</h1>
+      <div class="menu-subtitle">ABANDONED MILITARY BASE · 战术射击</div>
+      <p class="briefing">
+        夜袭指令：基地已被恐怖分子占领。<br>
+        消灭所有敌人，守住每一条走廊。<br>
+        活下去。
+      </p>
+      <button id="start-btn" class="menu-btn">进入战场</button>
+      <div class="controls-hint">
+        <span><b>WASD</b> 移动</span><span><b>Shift</b> 疾跑</span><span><b>Space</b> 跳跃</span>
+        <span><b>C</b> 下蹲</span><span><b>鼠标</b> 射击</span><span><b>R</b> 换弹</span>
+        <span><b>1/2</b> 切枪</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 暂停 ========== -->
+  <div id="pause" class="overlay hidden">
+    <div class="menu-box small">
+      <h2 class="menu-title small">已 暂 停</h2>
+      <button id="resume-btn" class="menu-btn">继续作战</button>
+      <button id="restart-btn-pause" class="menu-btn ghost">重新开始</button>
+    </div>
+  </div>
+
+  <!-- ========== 阵亡结算 ========== -->
+  <div id="death" class="overlay hidden">
+    <div class="menu-box small">
+      <h2 class="menu-title small danger">阵 亡</h2>
+      <div id="death-stats"></div>
+      <button id="restart-btn" class="menu-btn">重新出击</button>
+    </div>
+  </div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="js/textures.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/weapons.js"></script>
+  <script src="js/enemies.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
