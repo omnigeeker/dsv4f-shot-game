@@ -23,6 +23,7 @@
 
   // ---------- 玩家 / 敌人 / 武器 ----------
   const player = PLAYER.create(camera, renderer.domElement);
+  player.attach();
   const enemies = ENEMIES.create(scene, {
     player,
     onWaveStart: (n) => UI.waveBanner(n),

@@ -23,7 +23,8 @@ window.PLAYER = (function () {
       onFootstep: null, onDamage: null, onDeath: null,
       camera, canvas,
       _keys: {},
-      _mouseDX: 0, _mouseDY: 0
+      _mouseDX: 0, _mouseDY: 0,
+      _rightLook: false
     };
 
     /* ---------- 输入 ---------- */
@@ -40,20 +41,28 @@ window.PLAYER = (function () {
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') p._sprintHeld = false;
     };
     const onMouseMove = (e) => {
-      if (document.pointerLockElement !== canvas) return;
+      const locked = document.pointerLockElement === canvas;
+      if (!locked && !p._rightLook) return; // 指针锁定或按住右键才转视角
       p._mouseDX += e.movementX;
       p._mouseDY += e.movementY;
     };
+    const onMouseDown = (e) => { if (e.button === 2) p._rightLook = true; };
+    const onMouseUp = (e) => { if (e.button === 2) p._rightLook = false; };
 
     p.attach = () => {
       window.addEventListener('keydown', onKeyDown);
       window.addEventListener('keyup', onKeyUp);
       document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mousedown', onMouseDown);
+      document.addEventListener('mouseup', onMouseUp);
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     };
     p.detach = () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mouseup', onMouseUp);
     };
 
     /* ---------- 重置 ---------- */
@@ -107,6 +116,8 @@ window.PLAYER = (function () {
       p.pos[axis] += delta;
       const box = playerBox();
       for (const col of WORLD.colliders) {
+        // 完全在脚下的碰撞体（如地面）不阻挡水平移动
+        if (axis !== 'y' && col.maxY <= p.pos.y + 0.1) continue;
         if (overlap(box, col)) {
           p.pos[axis] -= delta;
           return;

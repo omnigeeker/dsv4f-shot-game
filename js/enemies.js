@@ -263,6 +263,8 @@ window.ENEMIES = (function () {
       const r = 0.4;
       const box = { minX: bot.pos.x - r, minY: 0, minZ: bot.pos.z - r, maxX: bot.pos.x + r, maxY: 1.7, maxZ: bot.pos.z + r };
       for (const col of WORLD.colliders) {
+        // 脚下地面不阻挡水平移动
+        if (col.maxY <= bot.pos.y + 0.1) continue;
         if (box.minX < col.maxX && box.maxX > col.minX && box.minY < col.maxY && box.maxY > col.minY && box.minZ < col.maxZ && box.maxZ > col.minZ) {
           bot.pos.sub(step);
           break;

@@ -302,6 +302,6 @@ window.WORLD = (function () {
     get colliders() { return colliders; },
     get hitTargets() { return hitTargets; },
     get enemySpawnPoints() { return enemySpawnPoints; },
-    playerSpawn: { pos: new THREE.Vector3(0, 0, 42), yaw: 0 }
+    playerSpawn: { pos: new THREE.Vector3(0, 0, 37), yaw: 0 }
   };
 })();
