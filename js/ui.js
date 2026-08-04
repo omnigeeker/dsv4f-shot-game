@@ -54,6 +54,23 @@ window.UI = (function () {
     document.getElementById('restart-btn').addEventListener('click', onRestart);
     document.getElementById('restart-btn-pause').addEventListener('click', onRestart);
 
+    // 地图选择卡片
+    const mapSel = document.getElementById('map-select');
+    if (mapSel && window.WORLD) {
+      WORLD.MAPS.forEach((m, i) => {
+        const card = document.createElement('div');
+        card.className = 'map-card' + (i === 0 ? ' selected' : '');
+        card.dataset.idx = i;
+        card.innerHTML = '<span class="mc-name">' + m.name + '</span><span class="mc-desc">' + m.desc + '</span>';
+        card.addEventListener('click', () => {
+          for (const c of mapSel.children) c.classList.remove('selected');
+          card.classList.add('selected');
+          if (handlers.selectMap) handlers.selectMap(i);
+        });
+        mapSel.appendChild(card);
+      });
+    }
+
     window.addEventListener('pointerlockchange', onLockChange);
   }
 

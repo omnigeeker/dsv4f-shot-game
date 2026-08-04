@@ -83,7 +83,10 @@
     state.mode = 'playing';
     lockPointer();
   }
-  function setSelectedMap(idx) { selectedMap = Math.max(0, Math.min(WORLD.MAPS.length - 1, idx)); }
+  function setSelectedMap(idx) {
+    selectedMap = Math.max(0, Math.min(WORLD.MAPS.length - 1, idx));
+    if (state.mode === 'menu') { WORLD.loadMap(scene, selectedMap); UI.rebuildMinimap(); } // 菜单内实时预览
+  }
   function resumeGame() {
     weapons.setActive(true);
     player.active = true;
@@ -102,7 +105,8 @@
   UI.setHandlers({
     start: startGame,
     resume: resumeGame,
-    restart: startGame
+    restart: startGame,
+    selectMap: setSelectedMap
   });
   UI.init();
 

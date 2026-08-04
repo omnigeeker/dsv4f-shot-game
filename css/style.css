@@ -311,6 +311,50 @@ html, body {
   color: #c9d8b2;
   margin-bottom: 34px;
 }
+.map-select-title {
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #ffb347;
+  margin: 4px 0 14px;
+}
+#map-select {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 26px;
+}
+.map-card {
+  flex: 1;
+  max-width: 168px;
+  padding: 14px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(150,190,110,0.25);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+.map-card:hover { background: rgba(255,255,255,0.09); transform: translateY(-2px); }
+.map-card.selected {
+  border-color: #9dff4d;
+  background: rgba(120,255,80,0.08);
+  box-shadow: 0 0 18px rgba(120,255,80,0.35), inset 0 0 20px rgba(120,255,80,0.06);
+}
+.map-card .mc-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #e8ffce;
+  margin-bottom: 5px;
+}
+.map-card .mc-desc {
+  display: block;
+  font-size: 11px;
+  color: #8ba07a;
+  letter-spacing: 1px;
+}
+.map-card.selected .mc-desc { color: #b6ff7a; }
+
 .menu-btn {
   display: inline-block;
   padding: 14px 46px;
