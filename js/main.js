@@ -27,7 +27,10 @@
   player.attach();
   const enemies = ENEMIES.create(scene, {
     player,
-    onWaveStart: (n) => UI.waveBanner(n),
+    onWaveStart: (n) => {
+      UI.waveBanner(n);
+      player.protectT = Math.max(player.protectT, 3); // 每波开局 3 秒免伤
+    },
     onKill: () => UI.killfeed('<span class="kf-kill">击毙</span> 恐怖分子')
   });
   const weapons = WEAPONS.create(camera, scene, {

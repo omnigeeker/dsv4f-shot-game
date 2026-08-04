@@ -150,7 +150,9 @@ window.ENEMIES = (function () {
     /* ---------- 开火 ---------- */
     function fire(bot) {
       const dist = bot.pos.distanceTo(player.pos);
-      const aimErr = 0.02 + dist * 0.0008;
+      // 玩家蹲下时：目标更小 → 敌人更难命中，且受伤更少
+      const crouchMul = player.crouching ? 1.6 : 1;
+      const aimErr = (0.02 + dist * 0.0008) * crouchMul;
       const hitRoll = Math.random();
       bot.shootAnim = 0.12;
       bot.parts.flash.material.opacity = 0.9;
@@ -164,7 +166,8 @@ window.ENEMIES = (function () {
       if (hitRoll > 0.12) {
         to.x += (Math.random() - 0.5) * aimErr * 40;
         to.z += (Math.random() - 0.5) * aimErr * 40;
-        player.damage(bot.dmg * (0.7 + Math.random() * 0.6), bot.pos);
+        const dmgMul = (player.crouching ? 0.55 : 1) * (0.7 + Math.random() * 0.6);
+        player.damage(bot.dmg * dmgMul, bot.pos);
       }
       const geo = new THREE.BufferGeometry().setFromPoints([from, to]);
       const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
