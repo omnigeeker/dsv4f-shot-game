@@ -71,12 +71,13 @@
   function resetGame() {
     const sp = WORLD.getPlayerSpawn();
     player.setSpawn(sp.pos.x, sp.pos.z, sp.yaw);
-    weapons.mag = { rifle: 30, smg: 32, shotgun: 8, pistol: 12 };
-    weapons.reserve = { rifle: 90, smg: 128, shotgun: 32, pistol: 48 };
+    weapons.mag = { rifle: 30, smg: 32, shotgun: 8, sniper: 5, pistol: 12 };
+    weapons.reserve = { rifle: 90, smg: 128, shotgun: 32, sniper: 20, pistol: 48 };
     weapons.current = 'rifle';
     weapons.reloading = false;
     weapons.reloadT = 0;
     weapons.recoil = 0;
+    weapons.zoomed = false;
     enemies.reset();
     state.time = 0;
     state.shake = 0;

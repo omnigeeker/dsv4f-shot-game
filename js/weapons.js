@@ -83,6 +83,14 @@ window.WEAPONS = (function () {
       kick: 0.13, reloadTime: 2.8, switchTime: 0.4,
       muzzleOffset: [0, 0.025, -0.72], tracerColor: 0xffd090
     },
+    sniper: {
+      name: 'SR-98', auto: false, magSize: 5, reserve: 20,
+      dmg: 180, headDmg: 360, fireRate: 1.15,
+      spread: 0.001, moveSpread: 0.012, recoilPitch: 0.022,
+      kick: 0.09, reloadTime: 2.6, switchTime: 0.45,
+      muzzleOffset: [0, 0.03, -1.02], tracerColor: 0xfff4d8,
+      zoomFov: 16, zoomSens: 0.35
+    },
     pistol: {
       name: 'P-18', auto: false, magSize: 12, reserve: 48,
       dmg: 26, headDmg: 104, fireRate: 0.22,
@@ -91,7 +99,7 @@ window.WEAPONS = (function () {
       muzzleOffset: [0, 0.02, -0.2], tracerColor: 0xfff0c0
     }
   };
-  const ORDER = ['rifle', 'smg', 'shotgun', 'pistol'];
+  const ORDER = ['rifle', 'smg', 'shotgun', 'sniper', 'pistol'];
 
   /* ---------- 枪口火光贴图 ---------- */
   function starTexture() {
@@ -210,19 +218,48 @@ window.WEAPONS = (function () {
     box(0.05, 0.08, 0.05, -0.02, -0.11, 0.05, mGlove, 0.1);  // 握把手
     return g;
   }
+  function buildSniper() {
+    const g = new THREE.Group();
+    const box = (w, h, d, x, y, z, m, rx) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+      b.position.set(x, y, z);
+      if (rx) b.rotation.x = rx;
+      g.add(b); return b;
+    };
+    const cyl = (r, len, x, y, z, m) => {
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), m);
+      c.rotation.x = Math.PI / 2;
+      c.position.set(x, y, z);
+      g.add(c); return c;
+    };
+    box(0.05, 0.08, 0.4, 0, 0, -0.05, mDark);          // 机匣
+    cyl(0.013, 0.8, 0, 0.03, -0.65, mDark);             // 长枪管
+    cyl(0.02, 0.05, 0, 0.02, -1.04, mBlack);            // 枪口
+    box(0.06, 0.09, 0.4, 0, 0.03, -0.45, mBlack);       // 护木
+    // 瞄准镜
+    cyl(0.036, 0.24, 0, 0.095, -0.05, mBlack);          // 镜筒
+    cyl(0.02, 0.04, 0, 0.115, -0.17, mDark);            // 物镜
+    box(0.05, 0.11, 0.06, 0, -0.1, 0.14, mDark, 0.25);  // 握把
+    box(0.05, 0.09, 0.2, 0, 0.015, 0.2, mWood);         // 枪托
+    box(0.05, 0.08, 0.09, -0.02, -0.05, -0.5, mGlove);       // 护木手
+    box(0.05, 0.08, 0.05, -0.02, -0.11, 0.09, mGlove, 0.1);  // 握把手
+    return g;
+  }
 
   /* ---------- 创建 ---------- */
   function create(camera, scene, deps) {
     const { player, getEnemies, resolveHit, onEnemyDamaged } = deps;
     const raycaster = new THREE.Raycaster();
     const _v = new THREE.Vector3();
+    const BASE_FOV = camera.fov;
     const state = {
       current: 'rifle',
       mag: {}, reserve: {},
       reloading: false, reloadT: 0, switchT: 0,
       fireTimer: 0, fireHeld: false, semiFired: false,
       recoil: 0, kick: 0,
-      active: false, flashT: 0
+      active: false, flashT: 0,
+      zoomed: false
     };
     for (const k of ORDER) { state.mag[k] = SPECS[k].magSize; state.reserve[k] = SPECS[k].reserve; }
 
@@ -232,6 +269,7 @@ window.WEAPONS = (function () {
       rifle: buildRifle(),
       smg: buildSmg(),
       shotgun: buildShotgun(),
+      sniper: buildSniper(),
       pistol: buildPistol()
     };
     for (const k in models) view.add(models[k]);
@@ -257,7 +295,7 @@ window.WEAPONS = (function () {
     }
 
     /* ---------- 输入 ---------- */
-    const KEY_TO_WEAPON = { Digit1: 'rifle', Digit2: 'smg', Digit3: 'shotgun', Digit4: 'pistol' };
+    const KEY_TO_WEAPON = { Digit1: 'rifle', Digit2: 'smg', Digit3: 'shotgun', Digit4: 'sniper', Digit5: 'pistol' };
     const onKey = (e) => {
       if (KEY_TO_WEAPON[e.code]) switchTo(KEY_TO_WEAPON[e.code]);
       if (e.code === 'KeyR') reload();
@@ -269,6 +307,11 @@ window.WEAPONS = (function () {
       switchTo(ORDER[next]);
     };
     const onMouseDown = (e) => {
+      if (e.button === 2) {
+        // 指针锁定时右键开镜/关镜（仅开镜武器）
+        if (document.pointerLockElement && SPECS[state.current].zoomFov) toggleZoom();
+        return;
+      }
       if (e.button !== 0) return;
       state.fireHeld = true;
       tryFire();
@@ -279,11 +322,19 @@ window.WEAPONS = (function () {
       state.semiFired = false;
     };
 
+    function toggleZoom() {
+      if (!SPECS[state.current].zoomFov) return;
+      state.zoomed = !state.zoomed;
+      if (window.UI) UI.showScope(state.zoomed);
+      if (!state.zoomed) { if (window.UI) UI.showScope(false); }
+    }
+
     function switchTo(name) {
       if (name === state.current) return;
       if (state.reloading) state.reloading = false;
       state.current = name;
       state.switchT = SPECS[name].switchTime;
+      if (state.zoomed) { state.zoomed = false; if (window.UI) UI.showScope(false); } // 切枪自动关镜
       if (window.AUDIO) AUDIO.switchgun();
     }
 
@@ -344,7 +395,10 @@ window.WEAPONS = (function () {
       let nearest = null, nearestDist = Infinity;
 
       for (let p = 0; p < pellets; p++) {
-        const spread = w.spread + w.moveSpread * moveF + state.recoil * 0.004;
+        // 蹲下更稳、开镜更稳
+        let spread = (w.spread + w.moveSpread * moveF + state.recoil * 0.004);
+        if (player.crouching) spread *= 0.6;
+        if (state.zoomed) spread *= 0.4;
         const dir = camera.getWorldDirection(new THREE.Vector3());
         dir.x += (Math.random() - 0.5) * 2 * spread;
         dir.y += (Math.random() - 0.5) * 2 * spread;
@@ -404,6 +458,18 @@ window.WEAPONS = (function () {
       state.recoil *= Math.exp(-dt * 5);
       state.kick *= Math.exp(-dt * 9);
 
+      // 开镜：FOV 过渡 + 灵敏度 + 关镜条件
+      const spec = SPECS[state.current];
+      if (!state.active || !spec.zoomFov || !player.alive) state.zoomed = false;
+      if (state.zoomed && state.reloading) state.zoomed = false; // 换弹自动关镜
+      const targetFov = state.zoomed ? spec.zoomFov : BASE_FOV;
+      if (camera.fov !== targetFov) {
+        camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 9);
+        camera.updateProjectionMatrix();
+      }
+      player.sensMul = state.zoomed ? spec.zoomSens : 1;
+      if (window.UI) UI.showScope(state.zoomed);
+
       // 换弹
       if (state.reloading) {
         state.reloadT -= dt;
@@ -436,7 +502,8 @@ window.WEAPONS = (function () {
       view.rotation.x = state.kick * 1.2 - bobY * 2.5 + reloadEnv * 0.65;
       view.rotation.z = state.kick * 0.6 + bobX * 2 + reloadEnv * 0.18;
 
-      // 显示当前武器
+      // 显示当前武器（开镜时隐藏枪模）
+      view.visible = !state.zoomed;
       for (const k in models) models[k].visible = (k === state.current);
       flashPlane.visible = true;
       // 火光衰减
@@ -470,8 +537,11 @@ window.WEAPONS = (function () {
       reserve: state.reserve[state.current],
       name: SPECS[state.current].name,
       reloading: state.reloading,
+      zoomed: state.zoomed,
       crosshairGap: 6 + SPECS[state.current].spread * 900 + state.recoil * 5 + Math.min(14, Math.hypot(player.vel.x, player.vel.z) * 1.6)
     });
+    state.getList = () => ORDER.map((k, i) => ({ key: k, name: SPECS[k].name, num: i + 1, zoom: !!SPECS[k].zoomFov }));
+    state.currentKey = () => state.current;
     state.setActive = (a) => { state.active = a; if (!a) { state.fireHeld = false; state.semiFired = false; } };
     state.spawnBurst = FX.spawnBurst;
     state.fxPoints = FX.pts;

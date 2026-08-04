@@ -425,6 +425,64 @@ html, body {
   transition: opacity 0.3s;
 }
 
+/* ============ 狙击镜 ============ */
+#scope {
+  position: absolute; inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, rgba(0,0,0,0) 0 33vmin, rgba(0,0,0,0.96) 33.6vmin 100%);
+}
+.scope-cross { position: absolute; left: 50%; top: 50%; background: rgba(0,0,0,0.9); transform: translate(-50%,-50%); }
+.scope-cross.v { width: 2px; height: 66vmin; }
+.scope-cross.h { width: 66vmin; height: 2px; }
+.scope-ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 66vmin; height: 66vmin;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  border: 4px solid rgba(0,0,0,0.92);
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+}
+.scope-tick { position: absolute; left: 50%; top: 50%; background: rgba(0,0,0,0.9); }
+.scope-tick.t { width: 2px; height: 12px; transform: translate(-50%, -33vmin); }
+.scope-tick.b { width: 2px; height: 12px; transform: translate(-50%, calc(33vmin - 12px)); }
+.scope-tick.l { width: 12px; height: 2px; transform: translate(-33vmin, -50%); }
+.scope-tick.r { width: 12px; height: 2px; transform: translate(calc(33vmin - 12px), -50%); }
+
+/* ============ 武器槽位 ============ */
+#weapon-slots {
+  position: absolute;
+  left: 50%; bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+.wslot {
+  min-width: 64px;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #8fa27a;
+  background: rgba(8,12,6,0.65);
+  border: 1px solid rgba(120,160,90,0.25);
+  border-bottom: 2px solid rgba(120,160,90,0.25);
+}
+.wslot .wk {
+  display: block;
+  font-size: 10px;
+  color: #6b7a58;
+  margin-bottom: 2px;
+}
+.wslot.current {
+  color: #e8ffce;
+  border-color: #9dff4d;
+  background: rgba(120,255,80,0.12);
+  box-shadow: 0 0 14px rgba(120,255,80,0.3);
+}
+.wslot.current .wk { color: #9dff4d; }
+
 /* 加血提示 */
 #heal-label {
   position: absolute;

@@ -20,6 +20,7 @@ window.PLAYER = (function () {
       bobPhase: 0,
       landTime: 0,
       protectT: 0,
+      sensMul: 1, // 开镜时降低灵敏度
       // 回调（由 main 注入）
       onFootstep: null, onDamage: null, onDeath: null, onProtectEnd: null,
       camera, canvas,
@@ -149,8 +150,8 @@ window.PLAYER = (function () {
         if (p.protectT === 0 && p.onProtectEnd) p.onProtectEnd();
       }
 
-      // 视角
-      const sens = 0.0021;
+      // 视角（开镜时降低灵敏度）
+      const sens = 0.0021 * (p.sensMul || 1);
       p.yaw -= p._mouseDX * sens;
       p.pitch -= p._mouseDY * sens;
       p.pitch = Math.max(-1.55, Math.min(1.55, p.pitch));

@@ -32,7 +32,9 @@ window.UI = (function () {
       killsNum: document.getElementById('kills-num'),
       waveNum: document.getElementById('wave-num'),
       deathStats: document.getElementById('death-stats'),
-      minimap: document.getElementById('minimap-canvas')
+      minimap: document.getElementById('minimap-canvas'),
+      scope: document.getElementById('scope'),
+      weaponSlots: document.getElementById('weapon-slots')
     };
     // 换弹提示（动态创建）
     const rm = document.createElement('div');
@@ -40,6 +42,9 @@ window.UI = (function () {
     rm.className = 'hidden';
     document.getElementById('ammo').appendChild(rm);
     els.reloadMsg = rm;
+
+    // 武器槽位
+    if (els.weaponSlots && window.WEAPONS && WEAPONS.instance) buildWeaponSlots(WEAPONS.instance.getList());
 
     // 出生护盾提示（动态创建）
     const sb = document.createElement('div');
@@ -128,9 +133,14 @@ window.UI = (function () {
     els.reloadMsg.classList.toggle('hidden', !hud.reloading);
     els.weaponName.textContent = hud.name + (hud.reloading ? ' · 换弹中' : '');
 
-    // 准星
+    // 武器槽位高亮
+    if (els.weaponSlots) {
+      for (const s of els.weaponSlots.children) s.classList.toggle('current', s.dataset.name === hud.name);
+    }
+
+    // 准星（开镜/换弹时隐藏）
     els.crosshair.style.setProperty('--gap', hud.crosshairGap + 'px');
-    els.crosshair.classList.toggle('hidden', hud.reloading);
+    els.crosshair.classList.toggle('hidden', hud.reloading || hud.zoomed);
 
     // 出生护盾
     if (st.protect > 0) {
@@ -285,5 +295,21 @@ window.UI = (function () {
 
   function rebuildMinimap() { if (mapCtx) drawMapStatic(); }
 
-  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, healLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap };
+  /* ---------- 狙击镜 ---------- */
+  function showScope(show) { if (els.scope) els.scope.classList.toggle('hidden', !show); }
+
+  /* ---------- 武器槽位 ---------- */
+  function buildWeaponSlots(list) {
+    if (!els.weaponSlots) return;
+    els.weaponSlots.innerHTML = '';
+    for (const w of list) {
+      const d = document.createElement('div');
+      d.className = 'wslot';
+      d.dataset.name = w.name;
+      d.innerHTML = '<span class="wk">' + w.num + '</span>' + (w.zoom ? '🔍' : '') + w.name;
+      els.weaponSlots.appendChild(d);
+    }
+  }
+
+  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, healLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap, showScope, buildWeaponSlots };
 })();

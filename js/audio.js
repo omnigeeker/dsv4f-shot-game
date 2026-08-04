@@ -76,7 +76,11 @@ window.AUDIO = (function () {
 
     gunshot(type = 'rifle') {
       if (!ctx) return;
-      if (type === 'shotgun') {
+      if (type === 'sniper') {
+        playNoise({ dur: 0.4, gain: 1.0, filterType: 'lowpass', filterFreq: 1400 });
+        playNoise({ dur: 0.05, gain: 0.5, filterType: 'bandpass', filterFreq: 3000, filterQ: 2 });
+        playTone({ type: 'sine', f0: 110, f1: 35, dur: 0.35, gain: 0.95 });
+      } else if (type === 'shotgun') {
         playNoise({ dur: 0.34, gain: 1.0, filterType: 'lowpass', filterFreq: 1600 });
         playNoise({ dur: 0.08, gain: 0.5, filterType: 'bandpass', filterFreq: 900, filterQ: 1.5 });
         playTone({ type: 'sine', f0: 120, f1: 40, dur: 0.3, gain: 0.9 });
