@@ -76,7 +76,15 @@ window.AUDIO = (function () {
 
     gunshot(type = 'rifle') {
       if (!ctx) return;
-      if (type === 'rifle') {
+      if (type === 'shotgun') {
+        playNoise({ dur: 0.34, gain: 1.0, filterType: 'lowpass', filterFreq: 1600 });
+        playNoise({ dur: 0.08, gain: 0.5, filterType: 'bandpass', filterFreq: 900, filterQ: 1.5 });
+        playTone({ type: 'sine', f0: 120, f1: 40, dur: 0.3, gain: 0.9 });
+      } else if (type === 'smg') {
+        playNoise({ dur: 0.13, gain: 0.6, filterType: 'lowpass', filterFreq: 3200 });
+        playNoise({ dur: 0.03, gain: 0.3, filterType: 'bandpass', filterFreq: 1800, filterQ: 2 });
+        playTone({ type: 'sine', f0: 220, f1: 110, dur: 0.1, gain: 0.45 });
+      } else if (type === 'rifle') {
         playNoise({ dur: 0.24, gain: 0.9, filterType: 'lowpass', filterFreq: 2500 });
         playNoise({ dur: 0.05, gain: 0.45, filterType: 'bandpass', filterFreq: 1500, filterQ: 2 });
         playTone({ type: 'sine', f0: 150, f1: 55, dur: 0.22, gain: 0.7 });
@@ -85,6 +93,13 @@ window.AUDIO = (function () {
         playNoise({ dur: 0.035, gain: 0.3, filterType: 'bandpass', filterFreq: 1700, filterQ: 2 });
         playTone({ type: 'sine', f0: 195, f1: 90, dur: 0.1, gain: 0.5 });
       }
+    },
+    pickup() {
+      playTone({ type: 'sine', f0: 660, f1: 990, dur: 0.18, gain: 0.3 });
+      playTone({ type: 'sine', f0: 990, f1: 1320, dur: 0.22, gain: 0.25, when: 0.12 });
+    },
+    protect() {
+      playTone({ type: 'triangle', f0: 420, f1: 520, dur: 0.3, gain: 0.2 });
     },
 
     reload() {

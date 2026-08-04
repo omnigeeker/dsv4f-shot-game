@@ -69,6 +69,20 @@ window.WEAPONS = (function () {
       kick: 0.05, reloadTime: 2.2, switchTime: 0.35,
       muzzleOffset: [0, 0.015, -0.66], tracerColor: 0xffe0a0
     },
+    smg: {
+      name: 'SMG-11', auto: true, magSize: 32, reserve: 128,
+      dmg: 22, headDmg: 84, fireRate: 0.075,
+      spread: 0.008, moveSpread: 0.034, recoilPitch: 0.008,
+      kick: 0.035, reloadTime: 1.9, switchTime: 0.3,
+      muzzleOffset: [0, 0.015, -0.55], tracerColor: 0xffe8c0
+    },
+    shotgun: {
+      name: 'SG-870', auto: false, magSize: 8, reserve: 32,
+      dmg: 12, headDmg: 26, fireRate: 0.85, pellets: 8,
+      spread: 0.055, moveSpread: 0.02, recoilPitch: 0.035,
+      kick: 0.13, reloadTime: 2.8, switchTime: 0.4,
+      muzzleOffset: [0, 0.025, -0.72], tracerColor: 0xffd090
+    },
     pistol: {
       name: 'P-18', auto: false, magSize: 12, reserve: 48,
       dmg: 26, headDmg: 104, fireRate: 0.22,
@@ -77,7 +91,7 @@ window.WEAPONS = (function () {
       muzzleOffset: [0, 0.02, -0.2], tracerColor: 0xfff0c0
     }
   };
-  const ORDER = ['rifle', 'pistol'];
+  const ORDER = ['rifle', 'smg', 'shotgun', 'pistol'];
 
   /* ---------- 枪口火光贴图 ---------- */
   function starTexture() {
@@ -147,6 +161,55 @@ window.WEAPONS = (function () {
     box(0.03, 0.09, 0.05, -0.02, -0.09, -0.03, mGlove); // 手
     return g;
   }
+  function buildSmg() {
+    const g = new THREE.Group();
+    const box = (w, h, d, x, y, z, m, rx) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+      b.position.set(x, y, z);
+      if (rx) b.rotation.x = rx;
+      g.add(b); return b;
+    };
+    const cyl = (r, len, x, y, z, m) => {
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), m);
+      c.rotation.x = Math.PI / 2;
+      c.position.set(x, y, z);
+      g.add(c); return c;
+    };
+    box(0.05, 0.08, 0.3, 0, 0, -0.05, mDark);           // 机匣
+    box(0.045, 0.05, 0.18, 0, 0.01, -0.26, mBlack);      // 护木
+    cyl(0.012, 0.3, 0, 0.02, -0.42, mDark);              // 枪管
+    cyl(0.02, 0.05, 0, 0.01, -0.55, mBlack);             // 枪口
+    box(0.045, 0.13, 0.09, 0, -0.1, -0.05, mDark, 0.22); // 弹匣
+    box(0.04, 0.1, 0.06, 0, -0.08, 0.1, mDark, 0.25);    // 握把
+    box(0.05, 0.07, 0.12, 0, 0.01, 0.14, mDark);         // 枪托
+    box(0.05, 0.08, 0.07, -0.01, -0.05, -0.28, mGlove);       // 护木手
+    box(0.05, 0.08, 0.05, -0.01, -0.1, 0.05, mGlove, 0.1);    // 握把手
+    return g;
+  }
+  function buildShotgun() {
+    const g = new THREE.Group();
+    const box = (w, h, d, x, y, z, m, rx) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+      b.position.set(x, y, z);
+      if (rx) b.rotation.x = rx;
+      g.add(b); return b;
+    };
+    const cyl = (r, len, x, y, z, m) => {
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), m);
+      c.rotation.x = Math.PI / 2;
+      c.position.set(x, y, z);
+      g.add(c); return c;
+    };
+    box(0.055, 0.09, 0.34, 0, 0, -0.05, mDark);       // 机匣
+    cyl(0.016, 0.55, 0, 0.03, -0.5, mDark);            // 长枪管
+    cyl(0.02, 0.05, 0, 0.025, -0.74, mBlack);          // 枪口
+    box(0.07, 0.09, 0.3, 0, 0.02, -0.42, mWood);       // 木质护木
+    box(0.05, 0.12, 0.07, 0, -0.09, 0.1, mWood, 0.22); // 握把
+    box(0.055, 0.1, 0.18, 0, 0.015, 0.18, mWood);      // 枪托
+    box(0.05, 0.08, 0.1, -0.02, -0.05, -0.42, mGlove);       // 护木手
+    box(0.05, 0.08, 0.05, -0.02, -0.11, 0.05, mGlove, 0.1);  // 握把手
+    return g;
+  }
 
   /* ---------- 创建 ---------- */
   function create(camera, scene, deps) {
@@ -155,19 +218,23 @@ window.WEAPONS = (function () {
     const _v = new THREE.Vector3();
     const state = {
       current: 'rifle',
-      mag: { rifle: SPECS.rifle.magSize, pistol: SPECS.pistol.magSize },
-      reserve: { rifle: SPECS.rifle.reserve, pistol: SPECS.pistol.reserve },
+      mag: {}, reserve: {},
       reloading: false, reloadT: 0, switchT: 0,
       fireTimer: 0, fireHeld: false, semiFired: false,
       recoil: 0, kick: 0,
       active: false, flashT: 0
     };
+    for (const k of ORDER) { state.mag[k] = SPECS[k].magSize; state.reserve[k] = SPECS[k].reserve; }
 
     // 第一人称枪模
     const view = new THREE.Group();
-    const rifleModel = buildRifle();
-    const pistolModel = buildPistol();
-    view.add(rifleModel); view.add(pistolModel);
+    const models = {
+      rifle: buildRifle(),
+      smg: buildSmg(),
+      shotgun: buildShotgun(),
+      pistol: buildPistol()
+    };
+    for (const k in models) view.add(models[k]);
     view.position.set(0.3, -0.26, -0.45);
     camera.add(view);
     scene.add(camera);
@@ -190,10 +257,16 @@ window.WEAPONS = (function () {
     }
 
     /* ---------- 输入 ---------- */
+    const KEY_TO_WEAPON = { Digit1: 'rifle', Digit2: 'smg', Digit3: 'shotgun', Digit4: 'pistol' };
     const onKey = (e) => {
-      if (e.code === 'Digit1') switchTo('rifle');
-      if (e.code === 'Digit2') switchTo('pistol');
+      if (KEY_TO_WEAPON[e.code]) switchTo(KEY_TO_WEAPON[e.code]);
       if (e.code === 'KeyR') reload();
+    };
+    const onWheel = (e) => {
+      if (e.deltaY === 0) return;
+      const idx = ORDER.indexOf(state.current);
+      const next = e.deltaY > 0 ? (idx + 1) % ORDER.length : (idx - 1 + ORDER.length) % ORDER.length;
+      switchTo(ORDER[next]);
     };
     const onMouseDown = (e) => {
       if (e.button !== 0) return;
@@ -244,7 +317,7 @@ window.WEAPONS = (function () {
       camera.rotation.z += (Math.random() - 0.5) * 0.008;
 
       // 声音
-      if (window.AUDIO) AUDIO.gunshot(w.name === 'AK-47' ? 'rifle' : 'pistol');
+      if (window.AUDIO) AUDIO.gunshot(state.current);
 
       // 火光
       state.flashT = 0.05;
@@ -259,44 +332,54 @@ window.WEAPONS = (function () {
 
     function shootRay() {
       const w = SPECS[state.current];
-      // 散布
       const hSpeed = Math.hypot(player.vel.x, player.vel.z);
       const moveF = player.crouching ? 0.2 : Math.min(1, hSpeed / 8);
-      const spread = w.spread + w.moveSpread * moveF + state.recoil * 0.004;
-      const dir = camera.getWorldDirection(new THREE.Vector3());
-      dir.x += (Math.random() - 0.5) * 2 * spread;
-      dir.y += (Math.random() - 0.5) * 2 * spread;
-      dir.z += (Math.random() - 0.5) * 2 * spread;
-      dir.normalize();
+      const pellets = w.pellets || 1;
 
       const origin = camera.getWorldPosition(new THREE.Vector3());
-      raycaster.set(origin, dir);
-      raycaster.far = 200;
-      const targets = WORLD.hitTargets.concat(getEnemies());
-      const hits = raycaster.intersectObjects(targets, false);
-
       const muzzle = muzzleWorld(_v);
-      let end;
-      if (hits.length > 0) {
-        const h = hits[0];
-        end = h.point;
-        const e = resolveHit(h.object);
-        if (e) {
-          const isHead = e.isHead;
-          const dmg = isHead ? w.headDmg : w.dmg;
-          const killed = e.enemy.damage(dmg);
-          onEnemyDamaged(e.enemy, isHead, killed);
-          // 血花
-          FX.spawnBurst(h.point, isHead ? 0xff5a4d : 0xb2262e, isHead ? 14 : 9, 3.2, 0.4, 0.7, 1);
-          if (window.AUDIO) AUDIO.hit(isHead);
-        } else {
-          // 墙面火花
-          FX.spawnBurst(h.point, 0xffd27a, 7, 2.6, 0.3, 0.7, 1);
-          if (window.AUDIO) AUDIO.impact(h.point.distanceTo(origin));
+      const targets = WORLD.hitTargets.concat(getEnemies());
+
+      let hitEnemy = false, killedAny = false, headAny = false;
+      let nearest = null, nearestDist = Infinity;
+
+      for (let p = 0; p < pellets; p++) {
+        const spread = w.spread + w.moveSpread * moveF + state.recoil * 0.004;
+        const dir = camera.getWorldDirection(new THREE.Vector3());
+        dir.x += (Math.random() - 0.5) * 2 * spread;
+        dir.y += (Math.random() - 0.5) * 2 * spread;
+        dir.z += (Math.random() - 0.5) * 2 * spread;
+        dir.normalize();
+
+        raycaster.set(origin, dir);
+        raycaster.far = 200;
+        const hits = raycaster.intersectObjects(targets, false);
+
+        if (hits.length > 0) {
+          const h = hits[0];
+          if (h.distance < nearestDist) { nearestDist = h.distance; nearest = h; }
+          const e = resolveHit(h.object);
+          if (e) {
+            const isHead = e.isHead;
+            const dmg = isHead ? w.headDmg : w.dmg;
+            const killed = e.enemy.damage(dmg);
+            hitEnemy = true;
+            if (killed) killedAny = true;
+            if (isHead) headAny = true;
+            FX.spawnBurst(h.point, isHead ? 0xff5a4d : 0xb2262e, isHead ? 14 : 9, 3.2, 0.4, 0.7, 1);
+          } else {
+            // 墙面火花
+            FX.spawnBurst(h.point, 0xffd27a, pellets > 1 ? 4 : 7, 2.6, 0.3, 0.7, 1);
+            if (window.AUDIO) AUDIO.impact(h.point.distanceTo(origin));
+          }
         }
-      } else {
-        end = origin.clone().add(dir.multiplyScalar(200));
       }
+
+      if (hitEnemy) {
+        onEnemyDamaged(null, headAny, killedAny);
+        if (window.AUDIO) AUDIO.hit(headAny);
+      }
+      const end = nearest ? nearest.point : origin.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(200));
       spawnTracer(muzzle, end, w.tracerColor);
     }
 
@@ -346,9 +429,8 @@ window.WEAPONS = (function () {
       view.rotation.z = state.kick * 0.6 + bobX * 2;
 
       // 显示当前武器
-      rifleModel.visible = state.current === 'rifle';
-      pistolModel.visible = state.current === 'pistol';
-      flashPlane.visible = state.current === 'rifle' || true;
+      for (const k in models) models[k].visible = (k === state.current);
+      flashPlane.visible = true;
       // 火光衰减
       if (state.flashT > 0) {
         state.flashT -= dt;
@@ -389,6 +471,7 @@ window.WEAPONS = (function () {
     window.WEAPONS.instance = state;
 
     window.addEventListener('keydown', onKey);
+    window.addEventListener('wheel', onWheel, { passive: true });
     window.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
 
