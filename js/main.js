@@ -18,8 +18,9 @@
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.08, 700);
   camera.rotation.order = 'YXZ';
 
-  // ---------- 世界 ----------
-  WORLD.build(scene);
+  // ---------- 世界（默认加载第一张图做菜单背景） ----------
+  let selectedMap = 0;
+  WORLD.loadMap(scene, selectedMap);
 
   // ---------- 玩家 / 敌人 / 武器 ----------
   const player = PLAYER.create(camera, renderer.domElement);
@@ -58,9 +59,10 @@
 
   // ---------- 开始 / 重启 ----------
   function resetGame() {
-    player.setSpawn(WORLD.playerSpawn.pos.x, WORLD.playerSpawn.pos.z, WORLD.playerSpawn.yaw);
-    weapons.mag = { rifle: 30, pistol: 12 };
-    weapons.reserve = { rifle: 90, pistol: 48 };
+    const sp = WORLD.getPlayerSpawn();
+    player.setSpawn(sp.pos.x, sp.pos.z, sp.yaw);
+    weapons.mag = { rifle: 30, smg: 32, shotgun: 8, pistol: 12 };
+    weapons.reserve = { rifle: 90, smg: 128, shotgun: 32, pistol: 48 };
     weapons.current = 'rifle';
     weapons.reloading = false;
     weapons.reloadT = 0;
@@ -71,6 +73,8 @@
   }
   function startGame() {
     if (window.AUDIO) AUDIO.ensure();
+    WORLD.loadMap(scene, selectedMap);
+    UI.rebuildMinimap();
     resetGame();
     enemies.startWave();
     weapons.setActive(true);
@@ -79,6 +83,7 @@
     state.mode = 'playing';
     lockPointer();
   }
+  function setSelectedMap(idx) { selectedMap = Math.max(0, Math.min(WORLD.MAPS.length - 1, idx)); }
   function resumeGame() {
     weapons.setActive(true);
     player.active = true;
@@ -160,5 +165,5 @@
   requestAnimationFrame(loop);
 
   // 调试句柄
-  window.__game = { player, weapons, enemies, scene, camera, renderer, get state() { return state; } };
+  window.__game = { player, weapons, enemies, scene, camera, renderer, setSelectedMap, get state() { return state; } };
 })();

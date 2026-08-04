@@ -46,6 +46,7 @@ window.UI = (function () {
     cv.width = cv.height = 180;
     mapCanvas = cv; mapCtx = cv.getContext('2d');
     drawMapStatic();
+    els.rebuildMinimap = rebuildMinimap;
 
     // 按钮
     document.getElementById('start-btn').addEventListener('click', onStart);
@@ -229,5 +230,7 @@ window.UI = (function () {
     }
   }
 
-  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, waveBanner, killfeed, death, updateMinimap };
+  function rebuildMinimap() { if (mapCtx) drawMapStatic(); }
+
+  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap };
 })();

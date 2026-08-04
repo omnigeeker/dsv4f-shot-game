@@ -244,6 +244,80 @@ window.GameTextures = (function () {
     return toTexture(cv);
   }
 
+  /* ---------- 沙漠沙地 ---------- */
+  function sand() {
+    const cv = buildImage(256, 7171, (u, v, x, y) => {
+      const coarse = fbm(u * 8, v * 8, 31, 4);
+      const ripple = fbm(u * 18 + 3, v * 18, 17, 2);
+      let g = 176 + (coarse - 0.5) * 30 + (ripple - 0.5) * 18 + (hash2(x, y, 9) - 0.5) * 10;
+      g = clamp01(g / 255);
+      const r = g * 1.14, b = g * 0.86;
+      return [r * 255, g * 255, b * 255];
+    });
+    return toTexture(cv);
+  }
+
+  /* ---------- 土坯墙（沙漠建筑） ---------- */
+  function plaster() {
+    const cv = buildImage(256, 8888, (u, v, x, y) => {
+      const coarse = fbm(u * 6, v * 6, 41, 3);
+      const stain = fbm(u * 2 + 9, v * 2 + 4, 3, 3);
+      let g = 148 + (coarse - 0.5) * 26 + (hash2(x, y, 2) - 0.5) * 12;
+      if (stain > 0.6) g -= (stain - 0.6) * 130; // 墙根水渍
+      g = clamp01(g / 255);
+      const r = g * 1.18, b = g * 0.84;
+      return [r * 255, g * 255, b * 255];
+    });
+    return toTexture(cv);
+  }
+
+  /* ---------- 霓虹实验室金属地板 ---------- */
+  function floorGrid() {
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256;
+    const ctx = cv.getContext('2d');
+    // 深色金属底
+    const img = ctx.createImageData(256, 256);
+    const d = img.data;
+    const rng = mulberry32(5150);
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (rng() - 0.5) * 18;
+      d[i] = 22 + n; d[i + 1] = 30 + n; d[i + 2] = 34 + n; d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    // 网格发光线条
+    ctx.strokeStyle = 'rgba(70, 200, 230, 0.28)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i <= 256; i += 64) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(256, i); ctx.stroke();
+    }
+    return toTexture(cv);
+  }
+
+  /* ---------- 霓虹金属墙板 ---------- */
+  function panel() {
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#1a2026';
+    ctx.fillRect(0, 0, 256, 256);
+    const rng = mulberry32(6060);
+    const img = ctx.getImageData(0, 0, 256, 256);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (rng() - 0.5) * 20;
+      d[i] += n; d[i + 1] += n; d[i + 2] += n;
+    }
+    ctx.putImageData(img, 0, 0);
+    // 板缝
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(2, 2, 252, 252);
+    ctx.strokeStyle = 'rgba(120,200,255,0.08)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(8, 8, 240, 240);
+    return toTexture(cv);
+  }
+
   /* ---------- 油桶金属 ---------- */
   function barrel() {
     const cv = document.createElement('canvas'); cv.width = 128; cv.height = 256;
@@ -275,6 +349,7 @@ window.GameTextures = (function () {
 
   return {
     concrete, rustedMetal, corrugated, crateWood, sandbag, dirt, barrel,
+    sand, plaster, floorGrid, panel,
     _utils: { buildImage, toTexture, fbm, mulberry32 }
   };
 })();
