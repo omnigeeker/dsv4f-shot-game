@@ -21,6 +21,7 @@ window.PLAYER = (function () {
       landTime: 0,
       protectT: 0,
       sensMul: 1, // 开镜时降低灵敏度
+      scoped: false, // 开镜时镜头零晃动
       // 回调（由 main 注入）
       onFootstep: null, onDamage: null, onDeath: null, onProtectEnd: null,
       camera, canvas,
@@ -215,13 +216,14 @@ window.PLAYER = (function () {
       // 防掉落兜底
       if (p.pos.y < -20) { p.pos.y = 0; p.vel.y = 0; p.onGround = true; }
 
-      // 镜头晃动（脚步声节奏）
+      // 镜头晃动（脚步声节奏）；开镜时完全稳定
       const hSpeed = Math.hypot(p.vel.x, p.vel.z);
-      if (p.onGround && hSpeed > 0.8) {
+      const bobMul = p.scoped ? 0 : 1;
+      if (p.onGround && hSpeed > 0.8 && !p.scoped) {
         p.bobPhase += dt * (p.sprinting ? 13 : 10) * (1 + hSpeed * 0.06);
       }
-      const bob = Math.sin(p.bobPhase) * Math.min(0.045, hSpeed * 0.012);
-      const bobSway = Math.cos(p.bobPhase * 0.5) * Math.min(0.03, hSpeed * 0.008);
+      const bob = Math.sin(p.bobPhase) * Math.min(0.045, hSpeed * 0.012) * bobMul;
+      const bobSway = Math.cos(p.bobPhase * 0.5) * Math.min(0.03, hSpeed * 0.008) * bobMul;
 
       // 走路音
       p._stepAcc = (p._stepAcc || 0) + dt * hSpeed;

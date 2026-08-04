@@ -257,7 +257,7 @@ window.WEAPONS = (function () {
       mag: {}, reserve: {},
       reloading: false, reloadT: 0, switchT: 0,
       fireTimer: 0, fireHeld: false, semiFired: false,
-      recoil: 0, kick: 0,
+      recoil: 0, kick: 0, recoilOffset: 0, rollOffset: 0,
       active: false, flashT: 0,
       zoomed: false
     };
@@ -363,9 +363,9 @@ window.WEAPONS = (function () {
       state.mag[state.current]--;
       state.recoil = Math.min(3.5, state.recoil + 1);
       state.kick = w.kick;
-      // 后坐力抬枪口
-      camera.rotation.x += w.recoilPitch * (0.8 + Math.random() * 0.4);
-      camera.rotation.z += (Math.random() - 0.5) * 0.008;
+      // 后坐力抬枪口（自动回落）
+      state.recoilOffset += w.recoilPitch * (0.8 + Math.random() * 0.4);
+      state.rollOffset += (Math.random() - 0.5) * 0.012;
 
       // 声音
       if (window.AUDIO) AUDIO.gunshot(state.current);
@@ -395,10 +395,10 @@ window.WEAPONS = (function () {
       let nearest = null, nearestDist = Infinity;
 
       for (let p = 0; p < pellets; p++) {
-        // 蹲下更稳、开镜更稳
+        // 蹲下更稳；开镜完全精准（指哪打哪）
         let spread = (w.spread + w.moveSpread * moveF + state.recoil * 0.004);
-        if (player.crouching) spread *= 0.6;
-        if (state.zoomed) spread *= 0.4;
+        if (state.zoomed) spread = 0;
+        else if (player.crouching) spread *= 0.6;
         const dir = camera.getWorldDirection(new THREE.Vector3());
         dir.x += (Math.random() - 0.5) * 2 * spread;
         dir.y += (Math.random() - 0.5) * 2 * spread;
@@ -468,7 +468,14 @@ window.WEAPONS = (function () {
         camera.updateProjectionMatrix();
       }
       player.sensMul = state.zoomed ? spec.zoomSens : 1;
+      player.scoped = state.zoomed;
       if (window.UI) UI.showScope(state.zoomed);
+
+      // 后坐力/枪口晃动自动回落
+      state.recoilOffset *= Math.exp(-dt * 6);
+      state.rollOffset *= Math.exp(-dt * 6);
+      camera.rotation.x += state.recoilOffset;
+      camera.rotation.z = state.rollOffset;
 
       // 换弹
       if (state.reloading) {
@@ -535,8 +542,8 @@ window.WEAPONS = (function () {
     state.getHUD = () => {
       const spec = SPECS[state.current];
       let spread = spec.spread;
-      if (player.crouching) spread *= 0.6;   // 蹲下更稳，准星同步收缩
-      if (state.zoomed) spread *= 0.4;
+      if (state.zoomed) spread = 0;          // 开镜完全精准
+      else if (player.crouching) spread *= 0.6;   // 蹲下更稳，准星同步收缩
       return {
         mag: state.mag[state.current],
         reserve: state.reserve[state.current],
