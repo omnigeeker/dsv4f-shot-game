@@ -14,6 +14,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { loadPBR } from './pbr.js';
 
 // ---------- 渲染器 / 场景 / 相机 ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -41,6 +42,28 @@ composer.addPass(gtaoPass);
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.5, 1.0);
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
+
+// ---------- PBR 环境反射（供金属/粗糙度产生环境光反射） ----------
+(function setupEnvironment() {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color(0x0a0e18);
+  const panel = (x, y, z, color, s) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color }));
+    m.position.set(x, y, z);
+    m.scale.setScalar(s);
+    envScene.add(m);
+  };
+  panel(2, 1, 0, 0x8fa6d6, 6);   // 冷月光
+  panel(-2, 1, 0, 0xffc27a, 5);  // 暖泛光
+  panel(0, 1, 2, 0x2fe9ff, 4);   // 冷青
+  panel(0, 0.5, -2, 0xff9a2e, 4);// 暖橙
+  panel(0, 3, 0, 0xffffff, 3);   // 顶部
+  scene.environment = pmrem.fromScene(envScene, 0.04).texture;
+  pmrem.dispose();
+})();
+// 后台加载 CC0 PBR 贴图，就绪后热更新所有材质
+loadPBR().then((t) => { if (t) WORLD.applyPBR(t); });
 
 // ---------- 世界（默认加载第一张图做菜单背景） ----------
 let selectedMap = 0;

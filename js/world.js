@@ -502,8 +502,26 @@ export const WORLD = (function () {
     }
   }
 
+  /* ---------- 应用 CC0 PBR 贴图（热更新，无需重建） ---------- */
+  function applyPBR(t) {
+    const apply = (mat, set, env = 0.5) => {
+      if (!set || !set.color) return;
+      mat.map = set.color;
+      mat.normalMap = set.normal || null;
+      mat.roughnessMap = set.roughness || null;
+      mat.envMapIntensity = env;
+      mat.needsUpdate = true;
+    };
+    apply(mConcrete, t.concrete, 0.35);
+    apply(mDirt, t.dirt, 0.3);
+    apply(mSand, t.sand, 0.3);
+    apply(mRust, t.rust, 0.7);
+    apply(mCrate, t.crate, 0.4);
+    apply(mBarrel, t.rust, 0.6);
+  }
+
   return {
-    MAPS, loadMap, update,
+    MAPS, loadMap, update, applyPBR,
     get colliders() { return colliders; },
     get hitTargets() { return hitTargets; },
     get enemySpawnPoints() { return enemySpawnPoints; },
