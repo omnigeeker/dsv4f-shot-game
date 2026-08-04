@@ -30,7 +30,8 @@ export const PLAYER = (function () {
       camera, canvas,
       _keys: {},
       _mouseDX: 0, _mouseDY: 0,
-      _rightLook: false
+      _rightLook: false,
+      _crouchToggled: false, _crouchPressed: false
     };
 
     /* ---------- 输入 ---------- */
@@ -38,12 +39,12 @@ export const PLAYER = (function () {
       if (['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
       p._keys[e.code] = true;
       if (e.code === 'Space' && p.active) p._jumpQueued = true;
-      if (e.code === 'KeyC') p._crouchHeld = true;
+      if (e.code === 'KeyC') { if (!p._crouchPressed) { p._crouchPressed = true; p._crouchToggled = !p._crouchToggled; } } // 按一下蹲下/再按站起
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') p._sprintHeld = true;
     };
     const onKeyUp = (e) => {
       p._keys[e.code] = false;
-      if (e.code === 'KeyC') p._crouchHeld = false;
+      if (e.code === 'KeyC') p._crouchPressed = false;
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') p._sprintHeld = false;
     };
     const onMouseMove = (e) => {
@@ -161,8 +162,8 @@ export const PLAYER = (function () {
       p.pitch = Math.max(-1.55, Math.min(1.55, p.pitch));
       p._mouseDX = p._mouseDY = 0;
 
-      // 下蹲
-      p.crouching = !!p._crouchHeld;
+      // 下蹲（切换）
+      p.crouching = p._crouchToggled;
       p.sprinting = !!p._sprintHeld && !p.crouching &&
         (p._keys['KeyW'] || p._keys['ArrowUp']) &&
         (p._keys['ShiftLeft'] || p._keys['ShiftRight']);

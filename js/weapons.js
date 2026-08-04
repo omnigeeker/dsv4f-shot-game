@@ -382,6 +382,7 @@ export const WEAPONS = (function () {
       flashPlane.position.set(w.muzzleOffset[0], w.muzzleOffset[1], w.muzzleOffset[2]);
       muzzleWorld(_v);
       FX.spawnBurst(_v, 0xffb060, 3, 1.6, 0.2, 0, 0.5);
+      if (state.onFire) state.onFire(_v.clone()); // 枪声 → 敌人听觉侦测
 
       shootRay();
     }
@@ -561,6 +562,7 @@ export const WEAPONS = (function () {
     state.getList = () => ORDER.map((k, i) => ({ key: k, name: SPECS[k].name, num: i + 1, zoom: !!SPECS[k].zoomFov }));
     state.currentKey = () => state.current;
     state.setActive = (a) => { state.active = a; if (!a) { state.fireHeld = false; state.semiFired = false; } };
+    state.onFire = null;
     state.spawnBurst = FX.spawnBurst;
     state.fxPoints = FX.pts;
     state.update = update;

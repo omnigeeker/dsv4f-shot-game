@@ -149,14 +149,14 @@ export const ENEMIES = (function () {
     let spawnQueue = 0, spawnTimer = 0;
     const cfg = { autoWave: true, diff: 1, maxAlive: 6 };
 
-    /* ---------- 生成机器人（boss 可选，难度倍率） ---------- */
+    /* ---------- 生成机器人（boss 可选，可指定位置） ---------- */
     function spawnBot(opts = {}) {
       const wave = stats.wave;
       const d = cfg.diff;
       const boss = !!opts.boss;
       const hp = boss ? 350 * d : (60 + (wave - 1) * 22) * d;
       const model = buildModel(boss);
-      const pt = WORLD.enemySpawnPoints[(Math.random() * WORLD.enemySpawnPoints.length) | 0];
+      const pt = opts.pos ? opts.pos.clone() : WORLD.enemySpawnPoints[(Math.random() * WORLD.enemySpawnPoints.length) | 0];
       const bot = {
         model, pos: pt.clone(),
         hp, maxHp: hp,
@@ -167,7 +167,10 @@ export const ENEMIES = (function () {
         dead: false, deathT: 0, flashT: 0,
         walkPhase: 0, stepAcc: 0,
         shootAnim: 0,
-        isBoss: boss
+        isBoss: boss,
+        // 警觉状态（巡逻 → 察觉）
+        alerted: !!boss, calmT: 0, patrolIdx: 0, facingYaw: 0,
+        patrolPoints: initPatrol(pt)
       };
       bot.damage = (dmg) => damage(bot, dmg);
       for (const m of hitMeshes) if (m.userData.enemy === null && m.parent === model.group) m.userData.enemy = bot;
@@ -181,9 +184,22 @@ export const ENEMIES = (function () {
       stats.alive++;
       return bot;
     }
+    function initPatrol(pt) {
+      // 巡逻点：围绕出生点小幅散布（走廊内）
+      const pts = [];
+      for (let i = 0; i < 3; i++) {
+        pts.push(new THREE.Vector3(
+          pt.x + (Math.random() * 2 - 1) * 4,
+          0,
+          pt.z + (i - 1) * 3 + (Math.random() * 2 - 1) * 1.5
+        ));
+      }
+      return pts;
+    }
     function configure(c) { Object.assign(cfg, c); return cfg; }
     function spawnEnemy() { return spawnBot(); }
     function spawnBoss() { return spawnBot({ boss: true }); }
+    function spawnAt(pos, opts) { return spawnBot(Object.assign({ pos }, opts || {})); }
 
     /* ---------- 受伤 / 死亡 ---------- */
     function damage(bot, dmg) {
@@ -233,6 +249,43 @@ export const ENEMIES = (function () {
       tracers.push({ line, life: 0.07 });
     }
 
+    /* ---------- 侦测 / 巡逻 / 警觉 ---------- */
+    function angleDiff(a, b) {
+      let d = a - b;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return d;
+    }
+    function detectPlayer(bot, toP, dist, los) {
+      if (dist > 26) return false;                       // 侦测距离
+      const desired = Math.atan2(-toP.x, -toP.z);
+      if (Math.abs(angleDiff(desired, bot.facingYaw)) > 1.05) return false; // 60° 视野
+      return los;                                        // 视线
+    }
+    function alertBot(bot) { bot.alerted = true; bot.calmT = 5; }
+    function alertNearby(pos, radius) {
+      const r2 = radius * radius;
+      for (const bot of bots) {
+        if (bot.dead || bot.alerted) continue;
+        const dx = bot.pos.x - pos.x, dz = bot.pos.z - pos.z;
+        if (dx * dx + dz * dz < r2) alertBot(bot);
+      }
+    }
+    function patrol(bot, dt) {
+      const pts = bot.patrolPoints;
+      const t = pts[bot.patrolIdx];
+      const to = new THREE.Vector3(t.x - bot.pos.x, 0, t.z - bot.pos.z);
+      if (to.length() < 0.8) {
+        bot.patrolIdx = (bot.patrolIdx + 1) % pts.length;
+        return false; // 到达点，稍作停留
+      }
+      const dir = to.normalize();
+      bot.facingYaw = Math.atan2(-dir.x, -dir.z);
+      bot.group.rotation.y = bot.facingYaw;
+      moveBot(bot, dir, dt * 0.6);
+      return true;
+    }
+
     /* ---------- 单机器人更新 ---------- */
     function updateBot(bot, dt) {
       bot.flashT -= dt; bot.shootAnim -= dt;
@@ -275,21 +328,25 @@ export const ENEMIES = (function () {
       const dist = toP.length();
       const los = hasLOS(bot, player);
 
-      // 朝向玩家（yaw=0 面向 -z，故取 -dx/-dz）
-      if (dist > 0.001) {
-        bot.group.rotation.y = Math.atan2(-toP.x, -toP.z);
-      }
-
       let moving = false;
-      if (los && dist < 52) {
-        if (dist > 15) { const d = steerDir(bot, player); moveBot(bot, d, dt); moving = true; }
-        else if (dist < 6) { const d = steerDir(bot, player).multiplyScalar(-1); moveBot(bot, d, dt * 0.7); moving = true; }
-        if (bot.fireTimer <= 0) { fire(bot); bot.fireTimer = bot.fireInterval; }
+      if (!bot.alerted) {
+        // 巡逻：不直接攻击，玩家进入视野或听到声音才察觉
+        if (detectPlayer(bot, toP, dist, los)) { alertBot(bot); }
+        else { moving = patrol(bot, dt); }
       } else {
-        // 失去视线：继续逼近
-        const d = steerDir(bot, player);
-        moveBot(bot, d, dt);
-        moving = true;
+        // 警觉：追击 / 开火；失联后逐渐冷静恢复巡逻
+        if (!los && dist > 40) bot.calmT -= dt * 2;
+        if (bot.calmT <= 0 && !los && dist > 12) { bot.alerted = false; bot.calmT = 0; }
+        if (dist > 0.001) bot.group.rotation.y = Math.atan2(-toP.x, -toP.z);
+        if (los && dist < 52) {
+          if (dist > 15) { const d = steerDir(bot, player); moveBot(bot, d, dt); moving = true; }
+          else if (dist < 6) { const d = steerDir(bot, player).multiplyScalar(-1); moveBot(bot, d, dt * 0.7); moving = true; }
+          if (bot.fireTimer <= 0) { fire(bot); bot.fireTimer = bot.fireInterval; }
+        } else {
+          const d = steerDir(bot, player);
+          moveBot(bot, d, dt);
+          moving = true;
+        }
       }
 
       // 行走动画
@@ -392,7 +449,7 @@ export const ENEMIES = (function () {
 
     return {
       update, startWave, reset, resolveHit, damage,
-      configure, spawnEnemy, spawnBoss,
+      configure, spawnEnemy, spawnBoss, spawnAt, alertNearby,
       getEnemies: () => hitMeshes,
       getStats: () => stats,
       getBotAt: (i) => bots[i]

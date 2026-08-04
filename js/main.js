@@ -118,7 +118,11 @@ const medkits = MEDKITS.create(scene, {
 const state = { mode: 'menu', time: 0, shake: 0 };
 
 // ---------- 玩家回调 ----------
-player.onFootstep = (land) => land ? AUDIO.land() : AUDIO.footstep(player.sprinting);
+player.onFootstep = (land) => {
+  if (land) AUDIO.land();
+  else { AUDIO.footstep(player.sprinting); enemies.alertNearby(player.pos, 7); } // 脚步声惊动附近敌人
+};
+weapons.onFire = (pos) => enemies.alertNearby(pos, 18); // 枪声惊动更大范围
 player.onDamage = (fromPos) => {
   UI.damage(fromPos, player.pos, player.yaw);
   state.shake = 0.16;
@@ -129,7 +133,7 @@ player.onDeath = () => {
   weapons.setActive(false);
   if (gameMode === 'campaign') {
     const cp = MISSION.onDeath({ enemies });
-    if (cp) { respawnAtCheckpoint(cp); return; }
+    if (cp) { respawnAtCheckpoint(cp); return; } // 有 checkpoint：不退出锁定，直接满血重生续玩
     UI.death({ wave: enemies.getStats().wave, kills: enemies.getStats().kills, time: Math.round(state.time), retry: true });
     UI.setScreen('death');
     document.exitPointerLock();
@@ -175,6 +179,17 @@ function setSelectedMap(idx) {
   if (state.mode === 'menu') { WORLD.loadMap(scene, selectedMap); applyLightingProfile(); UI.rebuildMinimap(); } // 菜单内实时预览
 }
 function resumeGame() {
+  if (!player.alive) {
+    // 阵亡后从暂停返回：优先 checkpoint 重生，否则重开本关
+    if (gameMode === 'campaign' && MISSION.isActive()) {
+      const cp = MISSION.onDeath({ enemies });
+      if (cp) { respawnAtCheckpoint(cp); return; }
+      const h = MISSION.getHUD(); const c = MISSION.currentLevel();
+      if (h && c) { startCampaign(c.id - 1, h.diff); return; }
+    }
+    startGame();
+    return;
+  }
   weapons.setActive(true);
   player.active = true;
   UI.setScreen('hud');
@@ -197,7 +212,7 @@ function createVehicle(def) {
     damageEnemy: (e, d) => e.damage(d),
     shellDmg: def.type === 'tank' ? 40 : 18,
     spawnBurst: (...a) => weapons.spawnBurst(...a),
-    explode: () => { state.shake = 0.4; }
+    explode: (p) => { state.shake = 0.4; if (p) enemies.alertNearby(p, 14); }
   };
   vehicle = def.type === 'tank' ? VEHICLE.createTank(scene, opts) : VEHICLE.createBoat(scene, opts);
   const sp = WORLD.getPlayerSpawn().pos;
@@ -239,11 +254,12 @@ function startCampaign(levelIdx, difficulty) {
   MISSION.start(levelIdx, difficulty);
   resetGame();
   MISSION.setupEnemies(enemies);
+  MISSION.preplaceEnemies(enemies);
   medkits.reset();
   if (isVehicleLevel(def)) createVehicle(def);
   if (def.type === 'rescue') placeRescueMarkers();
   UI.setMissionHUD(MISSION.getHUD());
-  UI.showBriefing('第 ' + def.id + ' 关 · ' + def.title, def.subtitle + '。\n沿单线通道推进，消灭沿途敌人。检查点处阵亡将满血重生。', () => beginPlay());
+  UI.showBriefing('第 ' + def.id + ' 关 · ' + def.title, def.subtitle + '。\n敌人分布在通道各处巡逻——进入视野或发出枪声才会被发现。检查点处阵亡将满血重生。', () => beginPlay());
 }
 function resumeCampaign() {
   const g = MISSION.getSavedGame();
@@ -257,7 +273,7 @@ function resumeCampaign() {
   MISSION.start(g.level, g.difficulty);
   resetGame();
   MISSION.setupEnemies(enemies);
-  MISSION.restoreAfterRespawn(enemies);
+  MISSION.preplaceEnemies(enemies);
   medkits.reset();
   if (isVehicleLevel(def)) createVehicle(def);
   if (def.type === 'rescue') placeRescueMarkers();
@@ -440,7 +456,9 @@ function loop(now) {
             txt = '距终点 ' + Math.round(d) + 'm';
           }
         }
-        UI.setMissionProgress(pct, '难度 ' + (mh.diff >= 1.4 ? '困难' : '普通') + ' · ' + txt);
+        // 剩余敌人数
+        const remaining = mh.type === 'kill' ? Math.max(0, mh.totalEnemies - st.kills) : st.alive;
+        UI.setMissionProgress(pct, '难度 ' + (mh.diff >= 1.4 ? '困难' : '普通') + ' · ' + txt + ' · 剩余敌人 ' + remaining);
       }
     }
   }
