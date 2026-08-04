@@ -34,8 +34,8 @@ window.WORLD = (function () {
   const mLeaf = new THREE.MeshStandardMaterial({ color: 0x5a9a42, roughness: 0.9, metalness: 0 });
   const mStone = new THREE.MeshStandardMaterial({ color: 0x9a9288, roughness: 0.9, metalness: 0.1 });
   // 霓虹
-  const mFloorGrid = new THREE.MeshStandardMaterial({ map: T.floorGrid(), roughness: 0.5, metalness: 0.6 });
-  const mPanel = new THREE.MeshStandardMaterial({ map: T.panel(), roughness: 0.6, metalness: 0.5 });
+  const mFloorGrid = new THREE.MeshStandardMaterial({ map: T.floorGrid(), roughness: 0.5, metalness: 0.6, emissive: 0x0a2638, emissiveIntensity: 0.5 });
+  const mPanel = new THREE.MeshStandardMaterial({ map: T.panel(), roughness: 0.6, metalness: 0.5, emissive: 0x0c1c30, emissiveIntensity: 0.4 });
   const mNeonCyan = new THREE.MeshBasicMaterial({ color: 0x2fe9ff });
   const mNeonMagenta = new THREE.MeshBasicMaterial({ color: 0xff4fd8 });
   const mNeonOrange = new THREE.MeshBasicMaterial({ color: 0xff9a2e });
@@ -385,10 +385,10 @@ window.WORLD = (function () {
   function buildLab() {
     scene.fog = new THREE.Fog(0x0a0e16, 18, 130);
     scene.background = new THREE.Color(0x060810);
-    addLight(new THREE.AmbientLight(0x20305a, 0.9));
-    addLight(new THREE.HemisphereLight(0x3a5a8a, 0x0a0c12, 0.8));
+    addLight(new THREE.AmbientLight(0x2a3e6a, 1.2));
+    addLight(new THREE.HemisphereLight(0x46629a, 0x12141c, 0.9));
     // 主冷光
-    const key = new THREE.DirectionalLight(0x7fa8ff, 0.9);
+    const key = new THREE.DirectionalLight(0x8ab4ff, 1.2);
     key.position.set(-40, 60, 20);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
