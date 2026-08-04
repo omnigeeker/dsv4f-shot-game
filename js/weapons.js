@@ -532,14 +532,20 @@ window.WEAPONS = (function () {
       FX.update(dt);
     }
 
-    state.getHUD = () => ({
-      mag: state.mag[state.current],
-      reserve: state.reserve[state.current],
-      name: SPECS[state.current].name,
-      reloading: state.reloading,
-      zoomed: state.zoomed,
-      crosshairGap: 6 + SPECS[state.current].spread * 900 + state.recoil * 5 + Math.min(14, Math.hypot(player.vel.x, player.vel.z) * 1.6)
-    });
+    state.getHUD = () => {
+      const spec = SPECS[state.current];
+      let spread = spec.spread;
+      if (player.crouching) spread *= 0.6;   // 蹲下更稳，准星同步收缩
+      if (state.zoomed) spread *= 0.4;
+      return {
+        mag: state.mag[state.current],
+        reserve: state.reserve[state.current],
+        name: spec.name,
+        reloading: state.reloading,
+        zoomed: state.zoomed,
+        crosshairGap: 6 + spread * 900 + state.recoil * 5 + Math.min(14, Math.hypot(player.vel.x, player.vel.z) * 1.6)
+      };
+    };
     state.getList = () => ORDER.map((k, i) => ({ key: k, name: SPECS[k].name, num: i + 1, zoom: !!SPECS[k].zoomFov }));
     state.currentKey = () => state.current;
     state.setActive = (a) => { state.active = a; if (!a) { state.fireHeld = false; state.semiFired = false; } };
