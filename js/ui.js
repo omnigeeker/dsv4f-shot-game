@@ -1,7 +1,9 @@
 /* ============================================================
  * UI — HUD 渲染 / 菜单 / 击杀播报 / 小地图
  * ============================================================ */
-window.UI = (function () {
+import { WORLD } from './world.js';
+
+export const UI = (function () {
 
   let els = null;
   let damageFlash = 0, damageDir = 0, damageVisible = false;
@@ -43,8 +45,7 @@ window.UI = (function () {
     document.getElementById('ammo').appendChild(rm);
     els.reloadMsg = rm;
 
-    // 武器槽位
-    if (els.weaponSlots && window.WEAPONS && WEAPONS.instance) buildWeaponSlots(WEAPONS.instance.getList());
+    // 武器槽位（由 main 在武器创建后调用 buildWeaponSlots 填充）
 
     // 出生护盾提示（动态创建）
     const sb = document.createElement('div');
@@ -74,7 +75,7 @@ window.UI = (function () {
 
     // 地图选择卡片
     const mapSel = document.getElementById('map-select');
-    if (mapSel && window.WORLD) {
+    if (mapSel && WORLD) {
       WORLD.MAPS.forEach((m, i) => {
         const card = document.createElement('div');
         card.className = 'map-card' + (i === 0 ? ' selected' : '');

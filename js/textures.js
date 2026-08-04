@@ -1,8 +1,10 @@
 /* ============================================================
- * GameTextures — 程序化 Canvas 贴图（零外部资源）
+ * GameTextures — 程序化 Canvas 贴图 + CC0 PBR 贴图加载
  * 提供：混凝土 / 锈蚀金属 / 集装箱波纹板 / 木箱 / 沙袋 / 泥土 / 油桶
  * ============================================================ */
-window.GameTextures = (function () {
+import * as THREE from 'three';
+
+export const GameTextures = (function () {
 
   /* ---------- 工具 ---------- */
   function mulberry32(a) {

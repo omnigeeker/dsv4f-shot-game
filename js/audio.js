@@ -2,7 +2,7 @@
  * AUDIO — WebAudio 程序合成音效（零外部资源）
  * 枪声 / 换弹 / 命中 / 脚步 / 机器人 / 环境风声
  * ============================================================ */
-window.AUDIO = (function () {
+export const AUDIO = (function () {
 
   let ctx = null, master = null, noiseBuf = null;
 

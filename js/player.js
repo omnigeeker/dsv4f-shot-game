@@ -1,7 +1,10 @@
 /* ============================================================
  * PLAYER — 第一人称角色：移动 / 碰撞 / 指针锁定 / 受伤
  * ============================================================ */
-window.PLAYER = (function () {
+import * as THREE from 'three';
+import { WORLD } from './world.js';
+
+export const PLAYER = (function () {
 
   const EYE_STAND = 1.72, EYE_CROUCH = 1.15;
   const RADIUS = 0.34;

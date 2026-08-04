@@ -2,7 +2,12 @@
  * WEAPONS — 手枪/步枪武器系统
  * 开火/后坐力/散布/曳光/命中特效/换弹/切枪 + 第一人称枪模 + 粒子FX
  * ============================================================ */
-window.WEAPONS = (function () {
+import * as THREE from 'three';
+import { WORLD } from './world.js';
+import { AUDIO } from './audio.js';
+import { UI } from './ui.js';
+
+export const WEAPONS = (function () {
 
   /* ---------- 粒子 FX（供武器与敌人共用） ---------- */
   const FX = (function () {
@@ -326,8 +331,8 @@ window.WEAPONS = (function () {
       if (!SPECS[state.current].zoomFov) return;
       state.zoomed = !state.zoomed;
       player.scoped = state.zoomed; // 立即同步，消除首帧晃动
-      if (window.UI) UI.showScope(state.zoomed);
-      if (!state.zoomed) { if (window.UI) UI.showScope(false); }
+      UI.showScope(state.zoomed);
+      if (!state.zoomed) { UI.showScope(false); }
     }
 
     function switchTo(name) {
@@ -335,8 +340,8 @@ window.WEAPONS = (function () {
       if (state.reloading) state.reloading = false;
       state.current = name;
       state.switchT = SPECS[name].switchTime;
-      if (state.zoomed) { state.zoomed = false; if (window.UI) UI.showScope(false); } // 切枪自动关镜
-      if (window.AUDIO) AUDIO.switchgun();
+      if (state.zoomed) { state.zoomed = false; UI.showScope(false); } // 切枪自动关镜
+      AUDIO.switchgun();
     }
 
     function reload() {
@@ -346,7 +351,7 @@ window.WEAPONS = (function () {
       if (state.reserve[state.current] <= 0) return;
       state.reloading = true;
       state.reloadT = w.reloadTime;
-      if (window.AUDIO) AUDIO.reload();
+      AUDIO.reload();
     }
 
     /* ---------- 开火 ---------- */
@@ -369,14 +374,13 @@ window.WEAPONS = (function () {
       state.rollOffset += (Math.random() - 0.5) * 0.012;
 
       // 声音
-      if (window.AUDIO) AUDIO.gunshot(state.current);
+      AUDIO.gunshot(state.current);
 
       // 火光
       state.flashT = 0.05;
       flashPlane.rotation.z = Math.random() * Math.PI;
       flashPlane.position.set(w.muzzleOffset[0], w.muzzleOffset[1], w.muzzleOffset[2]);
       muzzleWorld(_v);
-      if (window.AUDIO === undefined) { }
       FX.spawnBurst(_v, 0xffb060, 3, 1.6, 0.2, 0, 0.5);
 
       shootRay();
@@ -425,14 +429,14 @@ window.WEAPONS = (function () {
           } else {
             // 墙面火花
             FX.spawnBurst(h.point, 0xffd27a, pellets > 1 ? 4 : 7, 2.6, 0.3, 0.7, 1);
-            if (window.AUDIO) AUDIO.impact(h.point.distanceTo(origin));
+            AUDIO.impact(h.point.distanceTo(origin));
           }
         }
       }
 
       if (hitEnemy) {
         onEnemyDamaged(null, headAny, killedAny);
-        if (window.AUDIO) AUDIO.hit(headAny);
+        AUDIO.hit(headAny);
       }
       const end = nearest ? nearest.point : origin.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(200));
       spawnTracer(muzzle, end, w.tracerColor);
@@ -470,7 +474,7 @@ window.WEAPONS = (function () {
       }
       player.sensMul = state.zoomed ? spec.zoomSens : 1;
       player.scoped = state.zoomed;
-      if (window.UI) UI.showScope(state.zoomed);
+      UI.showScope(state.zoomed);
 
       // 后坐力/枪口晃动自动回落
       state.recoilOffset *= Math.exp(-dt * 6);
@@ -560,7 +564,6 @@ window.WEAPONS = (function () {
     state.spawnBurst = FX.spawnBurst;
     state.fxPoints = FX.pts;
     state.update = update;
-    window.WEAPONS.instance = state;
 
     window.addEventListener('keydown', onKey);
     window.addEventListener('wheel', onWheel, { passive: true });

@@ -132,15 +132,15 @@
     </div>
   </div>
 
-  <script src="vendor/three.min.js"></script>
-  <script src="js/textures.js"></script>
-  <script src="js/world.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/player.js"></script>
-  <script src="js/weapons.js"></script>
-  <script src="js/enemies.js"></script>
-  <script src="js/medkits.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/main.js"></script>
+  <!-- Three.js 模块映射（CDN，r160） -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

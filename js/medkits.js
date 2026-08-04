@@ -2,7 +2,10 @@
  * MEDKITS — 加血包
  * 浮动旋转的医疗箱，走近拾取 +30 血（上限100），定时重生
  * ============================================================ */
-window.MEDKITS = (function () {
+import * as THREE from 'three';
+import { WORLD } from './world.js';
+
+export const MEDKITS = (function () {
 
   function buildKit(scene, point, list) {
     const g = new THREE.Group();

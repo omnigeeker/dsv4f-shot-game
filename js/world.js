@@ -3,7 +3,10 @@
  *   MAPS[0] 废弃军事基地(夜晚)  MAPS[1] 沙漠小镇(白昼)  MAPS[2] 霓虹实验室(赛博)
  * 输出：colliders / hitTargets / enemySpawnPoints / medkitPoints / getPlayerSpawn
  * ============================================================ */
-window.WORLD = (function () {
+import * as THREE from 'three';
+import { GameTextures } from './textures.js';
+
+export const WORLD = (function () {
 
   const T = GameTextures;
   const colliders = [];

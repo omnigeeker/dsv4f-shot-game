@@ -2,7 +2,11 @@
  * ENEMIES — 恐怖分子机器人 AI + 波次系统
  * 追击(射线避障)/视线开火/受击反馈/死亡动画
  * ============================================================ */
-window.ENEMIES = (function () {
+import * as THREE from 'three';
+import { WORLD } from './world.js';
+import { AUDIO } from './audio.js';
+
+export const ENEMIES = (function () {
 
   const raycaster = new THREE.Raycaster();
   const hitMeshes = [];           // 子弹可命中的机器人网格
@@ -96,7 +100,7 @@ window.ENEMIES = (function () {
   }
 
   function create(scene, deps) {
-    const { player, onKill, onWaveStart } = deps;
+    const { player, onKill, onWaveStart, spawnBurst } = deps;
     const bots = [];
     const tracers = [];
     const stats = { wave: 0, alive: 0, kills: 0, between: true, timer: 3 };
@@ -135,12 +139,12 @@ window.ENEMIES = (function () {
       if (bot.dead) return false;
       bot.hp -= dmg;
       bot.flashT = 0.09;
-      if (window.AUDIO) AUDIO.enemyHurt();
+      AUDIO.enemyHurt();
       if (bot.hp <= 0) {
         bot.dead = true;
         stats.kills++;
-        if (window.AUDIO) AUDIO.enemyDeath();
-        if (window.WEAPONS && WEAPONS.instance) WEAPONS.instance.spawnBurst(bot.pos.clone().setY(1), 0x8a1a1a, 16, 3.4, 0.5, 0.8, 1);
+        AUDIO.enemyDeath();
+        if (spawnBurst) spawnBurst(bot.pos.clone().setY(1), 0x8a1a1a, 16, 3.4, 0.5, 0.8, 1);
         if (onKill) onKill(bot);
         return true;
       }
@@ -157,7 +161,7 @@ window.ENEMIES = (function () {
       bot.shootAnim = 0.12;
       bot.parts.flash.material.opacity = 0.9;
       bot.parts.flashLight.intensity = 8;
-      if (window.AUDIO) AUDIO.enemyFire();
+      AUDIO.enemyFire();
       // 曳光
       const from = bot.pos.clone().setY(0.9);
       const to = player.pos.clone().setY(1.0 + (Math.random() - 0.5) * 2);
@@ -246,7 +250,7 @@ window.ENEMIES = (function () {
         bot.parts.armR.rotation.x = Math.sin(bot.walkPhase) * 0.4;
         bot.parts.torso.position.y = 0.95 + Math.abs(Math.sin(bot.walkPhase)) * 0.04;
         bot.stepAcc += dt * bot.speed;
-        if (bot.stepAcc > 2.2) { bot.stepAcc = 0; if (window.AUDIO) AUDIO.enemyStep(); }
+        if (bot.stepAcc > 2.2) { bot.stepAcc = 0; AUDIO.enemyStep(); }
       } else {
         bot.parts.legL.rotation.x *= 0.8; bot.parts.legR.rotation.x *= 0.8;
         bot.parts.armL.rotation.x *= 0.8; bot.parts.armR.rotation.x *= 0.8;
