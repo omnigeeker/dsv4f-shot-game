@@ -483,6 +483,105 @@ html, body {
 }
 .wslot.current .wk { color: #9dff4d; }
 
+/* ============ 模式切换 / 剧情菜单 ============ */
+#mode-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.mode-tab {
+  padding: 10px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #8ba07a;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(150,190,110,0.25);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mode-tab.active {
+  color: #e8ffce;
+  border-color: #9dff4d;
+  background: rgba(120,255,80,0.1);
+  box-shadow: 0 0 16px rgba(120,255,80,0.25);
+}
+#campaign-panel { margin-bottom: 6px; }
+#difficulty-select { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+.diff-btn {
+  padding: 8px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #8ba07a;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(150,190,110,0.25);
+  cursor: pointer;
+}
+.diff-btn.active { color: #ffb347; border-color: #ffb347; background: rgba(255,179,71,0.1); }
+#level-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 54px);
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.level-btn {
+  height: 54px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #e8ffce;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(150,190,110,0.3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.level-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+.level-btn.locked { color: #4a5640; background: rgba(255,255,255,0.02); cursor: not-allowed; border-color: rgba(120,150,90,0.15); }
+.level-btn.completed { border-color: #9dff4d; color: #9dff4d; }
+.level-btn.current { border-color: #ffb347; color: #ffb347; box-shadow: 0 0 14px rgba(255,179,71,0.4); }
+
+/* ============ 任务目标 HUD ============ */
+#mission-hud {
+  position: absolute;
+  left: 50%; top: 7%;
+  transform: translateX(-50%);
+  text-align: center;
+  min-width: 320px;
+  background: rgba(8,12,6,0.6);
+  border: 1px solid rgba(120,160,90,0.35);
+  padding: 8px 18px 10px;
+}
+#mission-title { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #ffb347; text-shadow: 0 2px 3px #000; }
+#mission-progress { font-size: 11px; color: #b6c8a0; margin-top: 3px; letter-spacing: 1px; }
+#mission-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.5); margin-top: 6px; border: 1px solid rgba(120,160,90,0.3); }
+#mission-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #5fbf2a, #b6ff7a); transition: width 0.3s; box-shadow: 0 0 8px rgba(120,255,80,0.5); }
+
+/* ============ 检查点提示 ============ */
+#checkpoint-toast {
+  position: absolute;
+  left: 50%; top: 30%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #7dff9a;
+  text-shadow: 0 0 14px rgba(60,255,120,0.9);
+  background: rgba(8,20,10,0.7);
+  border: 1px solid rgba(120,255,150,0.4);
+  padding: 10px 22px;
+}
+#checkpoint-toast.show { animation: cpToast 2s ease-out; }
+@keyframes cpToast {
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(0.85); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.victory-title { color: #9dff4d !important; text-shadow: 0 0 30px rgba(120,255,80,0.6), 0 4px 0 rgba(0,0,0,0.6) !important; }
+#victory-info { font-size: 15px; color: #c9d8b2; line-height: 2; margin: 8px 0 22px; }
+
 /* 加血提示 */
 #heal-label {
   position: absolute;

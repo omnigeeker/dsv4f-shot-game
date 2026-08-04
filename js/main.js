@@ -15,6 +15,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { loadPBR } from './pbr.js';
+import { MISSION } from './mission.js';
 
 // ---------- 渲染器 / 场景 / 相机 ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -121,18 +122,28 @@ player.onDamage = (fromPos) => {
   UI.damage(fromPos, player.pos, player.yaw);
   state.shake = 0.16;
 };
+let gameMode = 'arena'; // 'arena' | 'campaign'
+
 player.onDeath = () => {
   weapons.setActive(false);
+  if (gameMode === 'campaign') {
+    const cp = MISSION.onDeath({ enemies });
+    if (cp) { respawnAtCheckpoint(cp); return; }
+    UI.death({ wave: enemies.getStats().wave, kills: enemies.getStats().kills, time: Math.round(state.time), retry: true });
+    UI.setScreen('death');
+    document.exitPointerLock();
+    return;
+  }
   UI.death({ wave: enemies.getStats().wave, kills: enemies.getStats().kills, time: Math.round(state.time) });
   UI.setScreen('death');
   document.exitPointerLock();
 };
 player.onProtectEnd = () => AUDIO.protect();
 
-// ---------- 开始 / 重启 ----------
-function resetGame() {
-  const sp = WORLD.getPlayerSpawn();
-  player.setSpawn(sp.pos.x, sp.pos.z, sp.yaw);
+// ---------- 重置（可指定出生点） ----------
+function resetGame(spawnPos) {
+  const sp = spawnPos || WORLD.getPlayerSpawn().pos;
+  player.setSpawn(sp.x, sp.z, spawnPos ? Math.atan2(-(0 - sp.x), -(0 - sp.z)) : WORLD.getPlayerSpawn().yaw);
   weapons.mag = { rifle: 30, smg: 32, shotgun: 8, sniper: 5, pistol: 12 };
   weapons.reserve = { rifle: 90, smg: 128, shotgun: 32, sniper: 20, pistol: 48 };
   weapons.current = 'rifle';
@@ -144,19 +155,19 @@ function resetGame() {
   state.time = 0;
   state.shake = 0;
 }
+
+// ---------- 场景模式 ----------
 function startGame() {
+  gameMode = 'arena';
   AUDIO.ensure();
   WORLD.loadMap(scene, selectedMap);
   applyLightingProfile();
   UI.rebuildMinimap();
   resetGame();
+  enemies.configure({ autoWave: true, diff: 1 });
   medkits.reset();
   enemies.startWave();
-  weapons.setActive(true);
-  player.active = true;
-  UI.setScreen('hud');
-  state.mode = 'playing';
-  lockPointer();
+  beginPlay();
 }
 function setSelectedMap(idx) {
   selectedMap = Math.max(0, Math.min(WORLD.MAPS.length - 1, idx));
@@ -169,6 +180,85 @@ function resumeGame() {
   state.mode = 'playing';
   lockPointer();
 }
+
+// ---------- 剧情模式 ----------
+function startCampaign(levelIdx, difficulty) {
+  gameMode = 'campaign';
+  AUDIO.ensure();
+  const def = MISSION.start(levelIdx, difficulty);
+  WORLD.loadMap(scene, def.map);
+  applyLightingProfile();
+  UI.rebuildMinimap();
+  resetGame();
+  MISSION.setupEnemies(enemies);
+  medkits.reset();
+  UI.setMissionHUD(MISSION.getHUD());
+  beginPlay();
+  showMissionIntro(def);
+}
+function resumeCampaign() {
+  const g = MISSION.getSavedGame();
+  if (!g) return;
+  gameMode = 'campaign';
+  AUDIO.ensure();
+  const def = MISSION.start(g.level, g.difficulty, { checkpoint: g.checkpoint });
+  WORLD.loadMap(scene, def.map);
+  applyLightingProfile();
+  UI.rebuildMinimap();
+  resetGame();
+  MISSION.setupEnemies(enemies);
+  MISSION.restoreAfterRespawn(enemies);
+  medkits.reset();
+  const cp = g.checkpoint >= 0 ? def.checkpoints[g.checkpoint] : null;
+  const sp = WORLD.getPlayerSpawn();
+  if (cp) { player.setSpawn(cp.x, cp.z, Math.atan2(-(0 - cp.x), -(0 - cp.z))); }
+  player.health = 100; player.armor = 100;
+  UI.setMissionHUD(MISSION.getHUD());
+  beginPlay();
+}
+function nextCampaignLevel() {
+  const h = MISSION.getHUD();
+  const cur = MISSION.currentLevel();
+  if (!h || !cur) return;
+  const diff = h.diff || 1;
+  const nextIdx = cur.id; // id 1-based → 下一关 index = id
+  if (nextIdx < MISSION.LEVELS.length) startCampaign(nextIdx, diff);
+  else toMenu();
+}
+function toMenu() {
+  MISSION.reset();
+  gameMode = 'arena';
+  state.mode = 'menu';
+  UI.setScreen('menu');
+  WORLD.loadMap(scene, 0);
+  applyLightingProfile();
+  UI.rebuildMinimap();
+  UI.buildLevelGrid();
+}
+function showMissionIntro(def) {
+  UI.checkpointToast('任务 ' + def.id + ' · ' + def.title + ' — ' + def.subtitle);
+}
+function beginPlay() {
+  weapons.setActive(true);
+  player.active = true;
+  UI.setScreen('hud');
+  state.mode = 'playing';
+  lockPointer();
+}
+function respawnAtCheckpoint(cp) {
+  enemies.reset();
+  MISSION.setupEnemies(enemies);
+  MISSION.restoreAfterRespawn(enemies);
+  medkits.reset();
+  player.setSpawn(cp.x, cp.z, Math.atan2(-(0 - cp.x), -(0 - cp.z)));
+  player.health = 100; player.armor = 100; player.protectT = 5;
+  weapons.mag = { rifle: 30, smg: 32, shotgun: 8, sniper: 5, pistol: 12 };
+  weapons.reserve = { rifle: 90, smg: 128, shotgun: 32, sniper: 20, pistol: 48 };
+  weapons.current = 'rifle';
+  weapons.reloading = false;
+  UI.checkpointToast('已从检查点重生');
+  beginPlay();
+}
 function lockPointer() {
   try {
     const p = renderer.domElement.requestPointerLock();
@@ -180,11 +270,24 @@ function lockPointer() {
 UI.setHandlers({
   start: startGame,
   resume: resumeGame,
-  restart: startGame,
-  selectMap: setSelectedMap
+  restart: () => {
+    if (gameMode === 'campaign' && MISSION.isActive()) {
+      const h = MISSION.getHUD();
+      const cur = MISSION.currentLevel();
+      if (h && cur) startCampaign(cur.id - 1, h.diff);
+      else startGame();
+    } else startGame();
+  },
+  selectMap: setSelectedMap,
+  startLevel: (idx, diff) => startCampaign(idx, diff),
+  resumeCampaign,
+  nextLevel: nextCampaignLevel,
+  toMenu,
+  hasSavedGame: () => !!MISSION.getSavedGame()
 });
 UI.init();
 UI.buildWeaponSlots(weapons.getList());
+window.MISSION = MISSION;
 
 // ---------- 指针锁定丢失（Esc）→ 暂停 ----------
 document.addEventListener('pointerlockchange', () => {
@@ -223,6 +326,36 @@ function loop(now) {
     }
     enemies.update(dt);
     medkits.update(dt);
+    if (gameMode === 'campaign') {
+      MISSION.update(dt, {
+        enemies, player,
+        onCheckpoint: (i, total) => UI.checkpointToast('检查点 ' + i + '/' + total + ' 已激活'),
+        onWin: (def, diff) => {
+          weapons.setActive(false);
+          const hasNext = def.id < MISSION.LEVELS.length;
+          UI.victory('第 ' + def.id + ' 关 任务完成<br>' + (hasNext ? '解锁：第 ' + (def.id + 1) + ' 关' : '🎉 全部关卡通关！'), hasNext);
+          UI.setScreen('victory');
+          UI.hideMissionHUD();
+          document.exitPointerLock();
+          state.mode = 'victory';
+        }
+      });
+      const mh = MISSION.getHUD();
+      if (mh && mh.status === 'playing') {
+        const st = enemies.getStats();
+        let pct = 0, txt = '';
+        if (mh.type === 'kill' || mh.type === 'boss') {
+          const k = Math.min(st.kills, mh.max);
+          pct = mh.max ? k / mh.max * 100 : 0;
+          txt = '击杀 ' + k + ' / ' + mh.max;
+        } else if (mh.type === 'waves') {
+          const w = Math.min(st.wave, mh.max);
+          pct = mh.max ? w / mh.max * 100 : 0;
+          txt = '波次 ' + w + ' / ' + mh.max;
+        }
+        UI.setMissionProgress(pct, '难度 ' + (mh.diff >= 1.4 ? '困难' : '普通') + ' · ' + txt);
+      }
+    }
   }
 
   weapons.update(dt);

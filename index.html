@@ -80,6 +80,14 @@
 
     <!-- 武器槽位 -->
     <div id="weapon-slots"></div>
+
+    <!-- 任务目标（剧情模式） -->
+    <div id="mission-hud" class="hidden">
+      <div id="mission-title"></div>
+      <div id="mission-bar"><div id="mission-fill"></div></div>
+      <div id="mission-progress"></div>
+    </div>
+    <div id="checkpoint-toast" class="hidden">检查点已激活</div>
   </div>
 
   <!-- ========== 狙击镜 ========== -->
@@ -101,16 +109,50 @@
       <div class="menu-subtitle">ABANDONED MILITARY BASE · 战术射击</div>
       <p class="briefing">
         恐怖分子已占领多处据点。<br>
-        选择作战场景，消灭所有敌人，活下去。
+        选择模式，消灭所有敌人，活下去。
       </p>
-      <div class="map-select-title">选 择 作 战 场 景</div>
-      <div id="map-select"></div>
-      <button id="start-btn" class="menu-btn">进入战场</button>
+
+      <!-- 模式切换 -->
+      <div id="mode-tabs">
+        <button class="mode-tab" data-mode="campaign">剧情模式</button>
+        <button class="mode-tab active" data-mode="arena">场景模式</button>
+      </div>
+
+      <!-- 场景模式（原地图选择） -->
+      <div id="arena-panel">
+        <div class="map-select-title">选 择 作 战 场 景</div>
+        <div id="map-select"></div>
+        <button id="start-btn" class="menu-btn">进入战场</button>
+      </div>
+
+      <!-- 剧情模式 -->
+      <div id="campaign-panel" class="hidden">
+        <div class="map-select-title">选 择 难 度</div>
+        <div id="difficulty-select">
+          <button class="diff-btn active" data-diff="1">普通</button>
+          <button class="diff-btn" data-diff="1.5">困难</button>
+        </div>
+        <div class="map-select-title">选 择 关 卡</div>
+        <div id="level-grid"></div>
+        <button id="continue-btn" class="menu-btn ghost hidden">从检查点继续</button>
+        <button id="campaign-back" class="menu-btn ghost">返回</button>
+      </div>
+
       <div class="controls-hint">
         <span><b>WASD</b> 移动</span><span><b>Shift</b> 疾跑</span><span><b>Space</b> 跳跃</span>
         <span><b>C</b> 下蹲(更稳)</span><span><b>鼠标</b> 射击</span><span><b>R</b> 换弹</span>
         <span><b>1-5</b> 切枪</span><span><b>右键</b> 狙击开镜</span>
       </div>
+    </div>
+  </div>
+
+  <!-- ========== 剧情胜利 ========== -->
+  <div id="victory" class="overlay hidden">
+    <div class="menu-box small">
+      <h2 class="menu-title small victory-title">任 务 完 成</h2>
+      <div id="victory-info"></div>
+      <button id="next-level-btn" class="menu-btn">下一关</button>
+      <button id="victory-menu-btn" class="menu-btn ghost">返回主菜单</button>
     </div>
   </div>
 

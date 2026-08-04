@@ -36,8 +36,22 @@ export const UI = (function () {
       deathStats: document.getElementById('death-stats'),
       minimap: document.getElementById('minimap-canvas'),
       scope: document.getElementById('scope'),
-      weaponSlots: document.getElementById('weapon-slots')
+      weaponSlots: document.getElementById('weapon-slots'),
+      modeTabs: document.querySelectorAll('.mode-tab'),
+      arenaPanel: document.getElementById('arena-panel'),
+      campaignPanel: document.getElementById('campaign-panel'),
+      diffBtns: document.querySelectorAll('.diff-btn'),
+      levelGrid: document.getElementById('level-grid'),
+      continueBtn: document.getElementById('continue-btn'),
+      missionHud: document.getElementById('mission-hud'),
+      missionTitle: document.getElementById('mission-title'),
+      missionFill: document.getElementById('mission-fill'),
+      missionProgress: document.getElementById('mission-progress'),
+      checkpointToast: document.getElementById('checkpoint-toast'),
+      victory: document.getElementById('victory'),
+      victoryInfo: document.getElementById('victory-info')
     };
+    els.selectedDiff = 1;
     // 换弹提示（动态创建）
     const rm = document.createElement('div');
     rm.id = 'reload-msg';
@@ -90,7 +104,86 @@ export const UI = (function () {
       });
     }
 
+    // 模式切换
+    els.modeTabs.forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
+    // 难度
+    els.diffBtns.forEach(b => b.addEventListener('click', () => {
+      els.diffBtns.forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      els.selectedDiff = parseFloat(b.dataset.diff);
+    }));
+    // 关卡点击 → 由 main 处理
+    document.getElementById('continue-btn').addEventListener('click', () => { if (handlers.resumeCampaign) handlers.resumeCampaign(); });
+    document.getElementById('campaign-back').addEventListener('click', () => { if (handlers.toMenu) handlers.toMenu(); });
+    document.getElementById('next-level-btn').addEventListener('click', () => { if (handlers.nextLevel) handlers.nextLevel(); });
+    document.getElementById('victory-menu-btn').addEventListener('click', () => { if (handlers.toMenu) handlers.toMenu(); });
+
     window.addEventListener('pointerlockchange', onLockChange);
+  }
+
+  function setMode(mode) {
+    const campaign = mode === 'campaign';
+    els.arenaPanel.classList.toggle('hidden', campaign);
+    els.campaignPanel.classList.toggle('hidden', !campaign);
+    els.modeTabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+    // 剧情：刷新关卡列表与“继续”按钮
+    if (campaign) {
+      buildLevelGrid();
+      els.continueBtn.classList.toggle('hidden', !(handlers.hasSavedGame && handlers.hasSavedGame()));
+    }
+  }
+
+  function buildLevelGrid() {
+    if (!els.levelGrid || !window.MISSION) return;
+    const unlocked = window.MISSION.getUnlocked();
+    const saved = window.MISSION.getSavedGame();
+    els.levelGrid.innerHTML = '';
+    window.MISSION.getLevels().forEach((lv, i) => {
+      const idx = i;
+      const b = document.createElement('button');
+      b.className = 'level-btn';
+      b.textContent = lv.id;
+      b.title = lv.title + ' — ' + lv.subtitle;
+      if (lv.id < unlocked) b.classList.add('completed');
+      else if (lv.id === unlocked) b.classList.add('current');
+      else b.classList.add('locked');
+      if (lv.id <= unlocked) {
+        b.addEventListener('click', () => { if (handlers.startLevel) handlers.startLevel(idx, els.selectedDiff); });
+      }
+      els.levelGrid.appendChild(b);
+    });
+  }
+
+  function setMissionHUD(m) {
+    if (!els.missionHud || !m) return;
+    els.missionHud.classList.remove('hidden');
+    els.missionTitle.textContent = m.title + ' · ' + m.objective;
+  }
+  function updateMissionHUD(m) {
+    if (!m || m.status !== 'playing') { if (els.missionHud) els.missionHud.classList.add('hidden'); return; }
+    els.missionHud.classList.remove('hidden');
+    els.missionTitle.textContent = m.title + ' · ' + m.objective;
+    els.missionProgress.textContent = '难度 ' + (m.diff >= 1.4 ? '困难' : '普通');
+    // 进度：kill/boss 用击杀进度，waves 用波次进度（通过占位）
+    if (els.missionFill) {
+      let pct = 0;
+      if (m.max > 1) pct = 20; // 占位；实际进度由 main 提供
+      els.missionFill.style.width = pct + '%';
+    }
+  }
+  function hideMissionHUD() { if (els.missionHud) els.missionHud.classList.add('hidden'); }
+
+  function checkpointToast(text) {
+    els.checkpointToast.textContent = text || '检查点已激活';
+    els.checkpointToast.classList.remove('show');
+    void els.checkpointToast.offsetWidth;
+    els.checkpointToast.classList.add('show');
+  }
+
+  function victory(info, hasNext) {
+    els.victoryInfo.innerHTML = info || '';
+    document.getElementById('next-level-btn').classList.toggle('hidden', !hasNext);
+    els.victory.classList.remove('hidden');
   }
 
   /* ---------- 按钮（由 main 注入处理器） ---------- */
@@ -110,6 +203,7 @@ export const UI = (function () {
     els.menu.classList.toggle('hidden', s !== 'menu');
     els.pause.classList.toggle('hidden', s !== 'pause');
     els.death.classList.toggle('hidden', s !== 'death');
+    if (els.victory) els.victory.classList.toggle('hidden', s !== 'victory');
     if (s !== 'hud') { damageFlash = 0; damageVisible = false; els.damageVig.style.opacity = 0; els.damageDir.style.opacity = 0; }
   }
 
@@ -296,6 +390,11 @@ export const UI = (function () {
 
   function rebuildMinimap() { if (mapCtx) drawMapStatic(); }
 
+  function setMissionProgress(pct, text) {
+    if (els.missionFill) els.missionFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    if (text && els.missionProgress) els.missionProgress.textContent = text;
+  }
+
   /* ---------- 狙击镜 ---------- */
   function showScope(show) { if (els.scope) els.scope.classList.toggle('hidden', !show); }
 
@@ -312,5 +411,6 @@ export const UI = (function () {
     }
   }
 
-  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, healLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap, showScope, buildWeaponSlots };
+  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, healLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap, showScope, buildWeaponSlots,
+    setMode, buildLevelGrid, setMissionHUD, updateMissionHUD, hideMissionHUD, setMissionProgress, checkpointToast, victory, setScreenHidden: (id, hidden) => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', hidden); } };
 })();

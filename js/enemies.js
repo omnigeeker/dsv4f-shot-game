@@ -28,10 +28,13 @@ export const ENEMIES = (function () {
     glove: new THREE.MeshStandardMaterial({ color: 0x262420, roughness: 0.9, metalness: 0 })
   };
 
-  function buildModel() {
+  function buildModel(boss) {
     const g = new THREE.Group();
     const mats = {};
     for (const k in baseMats) mats[k] = baseMats[k].clone();
+    if (boss) {
+      for (const k in mats) { mats[k].emissive = new THREE.Color(0x8a1414); mats[k].emissiveIntensity = 0.5; }
+    }
     const parts = { mats };
     const add = (w, h, d, x, y, z, mat, parent) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats[mat]);
@@ -144,34 +147,43 @@ export const ENEMIES = (function () {
     const tracers = [];
     const stats = { wave: 0, alive: 0, kills: 0, between: true, timer: 3 };
     let spawnQueue = 0, spawnTimer = 0;
+    const cfg = { autoWave: true, diff: 1, maxAlive: 6 };
 
-    /* ---------- 生成机器人 ---------- */
-    function spawnBot() {
+    /* ---------- 生成机器人（boss 可选，难度倍率） ---------- */
+    function spawnBot(opts = {}) {
       const wave = stats.wave;
-      const hp = 60 + (wave - 1) * 22;
-      const model = buildModel();
+      const d = cfg.diff;
+      const boss = !!opts.boss;
+      const hp = boss ? 350 * d : (60 + (wave - 1) * 22) * d;
+      const model = buildModel(boss);
       const pt = WORLD.enemySpawnPoints[(Math.random() * WORLD.enemySpawnPoints.length) | 0];
       const bot = {
         model, pos: pt.clone(),
         hp, maxHp: hp,
-        speed: Math.min(4.8, 2.6 + wave * 0.18),
-        dmg: Math.min(22, 7 + (wave - 1) * 1.6),
-        fireInterval: Math.max(0.5, 1.05 - wave * 0.05),
+        speed: boss ? 2.4 : Math.min(4.8, (2.6 + wave * 0.18) * (0.8 + 0.2 * d)),
+        dmg: boss ? 22 * d : Math.min(22, 7 + (wave - 1) * 1.6) * d,
+        fireInterval: boss ? 0.7 : Math.max(0.5, (1.05 - wave * 0.05) / (0.85 + 0.15 * d)),
         fireTimer: 0.5 + Math.random() * 1,
         dead: false, deathT: 0, flashT: 0,
         walkPhase: 0, stepAcc: 0,
-        shootAnim: 0
+        shootAnim: 0,
+        isBoss: boss
       };
-      bot.damage = (d) => damage(bot, d);
+      bot.damage = (dmg) => damage(bot, dmg);
       for (const m of hitMeshes) if (m.userData.enemy === null && m.parent === model.group) m.userData.enemy = bot;
       bot.parts = model.parts;
       bot.eye = _v.set(0, 1.35, 0).clone();
       bot.group = model.group;
+      if (boss) bot.group.scale.setScalar(1.4);
       bot.group.position.copy(bot.pos);
       scene.add(bot.group);
       bots.push(bot);
       stats.alive++;
+      return bot;
     }
+    function configure(c) { Object.assign(cfg, c); return cfg; }
+    function spawnEnemy() { return spawnBot(); }
+    function spawnBoss() { return spawnBot({ boss: true }); }
 
     /* ---------- 受伤 / 死亡 ---------- */
     function damage(bot, dmg) {
@@ -335,17 +347,19 @@ export const ENEMIES = (function () {
 
     /* ---------- 主更新 ---------- */
     function update(dt) {
-      if (stats.between) {
-        stats.timer -= dt;
-        if (stats.timer <= 0) startWave();
-      } else {
-        // 逐步刷怪
-        if (spawnQueue > 0) {
-          spawnTimer -= dt;
-          if (spawnTimer <= 0) { spawnBot(); spawnQueue--; spawnTimer = 0.45; }
-        } else if (stats.alive === 0) {
-          stats.between = true;
-          stats.timer = 14;
+      if (cfg.autoWave) {
+        if (stats.between) {
+          stats.timer -= dt;
+          if (stats.timer <= 0) startWave();
+        } else {
+          // 逐步刷怪
+          if (spawnQueue > 0) {
+            spawnTimer -= dt;
+            if (spawnTimer <= 0) { spawnBot(); spawnQueue--; spawnTimer = 0.45; }
+          } else if (stats.alive === 0) {
+            stats.between = true;
+            stats.timer = 14;
+          }
         }
       }
 
@@ -378,6 +392,7 @@ export const ENEMIES = (function () {
 
     return {
       update, startWave, reset, resolveHit, damage,
+      configure, spawnEnemy, spawnBoss,
       getEnemies: () => hitMeshes,
       getStats: () => stats,
       getBotAt: (i) => bots[i]
