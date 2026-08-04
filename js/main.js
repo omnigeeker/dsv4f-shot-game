@@ -37,7 +37,7 @@ composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 composer.setSize(window.innerWidth, window.innerHeight);
 composer.addPass(new RenderPass(scene, camera));
 const gtaoPass = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight);
-gtaoPass.updateGtaoMaterial({ radius: 0.4, distanceExponent: 1.0, thickness: 1.0, scale: 0.5, samples: 10, screenSpaceRadius: false });
+gtaoPass.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.0, thickness: 1.0, scale: 0.5, samples: 14, screenSpaceRadius: false });
 composer.addPass(gtaoPass);
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.5, 1.0);
 composer.addPass(bloomPass);
@@ -68,6 +68,17 @@ loadPBR().then((t) => { if (t) WORLD.applyPBR(t); });
 // ---------- 世界（默认加载第一张图做菜单背景） ----------
 let selectedMap = 0;
 WORLD.loadMap(scene, selectedMap);
+applyLightingProfile();
+
+function applyLightingProfile() {
+  const p = WORLD.getLightingProfile();
+  renderer.toneMappingExposure = p.exposure;
+  if (bloomPass) {
+    bloomPass.strength = p.bloom.strength;
+    bloomPass.radius = p.bloom.radius;
+    bloomPass.threshold = p.bloom.threshold;
+  }
+}
 
 // ---------- 玩家 / 敌人 / 武器 ----------
 const player = PLAYER.create(camera, renderer.domElement);
@@ -136,6 +147,7 @@ function resetGame() {
 function startGame() {
   AUDIO.ensure();
   WORLD.loadMap(scene, selectedMap);
+  applyLightingProfile();
   UI.rebuildMinimap();
   resetGame();
   medkits.reset();
@@ -148,7 +160,7 @@ function startGame() {
 }
 function setSelectedMap(idx) {
   selectedMap = Math.max(0, Math.min(WORLD.MAPS.length - 1, idx));
-  if (state.mode === 'menu') { WORLD.loadMap(scene, selectedMap); UI.rebuildMinimap(); } // 菜单内实时预览
+  if (state.mode === 'menu') { WORLD.loadMap(scene, selectedMap); applyLightingProfile(); UI.rebuildMinimap(); } // 菜单内实时预览
 }
 function resumeGame() {
   weapons.setActive(true);

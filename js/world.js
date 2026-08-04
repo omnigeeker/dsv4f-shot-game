@@ -16,6 +16,8 @@ export const WORLD = (function () {
   const movingLights = [];
   let group = null, scene = null, t = 0;
   let currentPlayerSpawn = null;
+  let currentExposure = 1.9;
+  let currentBloom = { strength: 0.4, radius: 0.5, threshold: 1.0 };
 
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
   const cylGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.3, 12);
@@ -91,10 +93,15 @@ export const WORLD = (function () {
   }
 
   /* ---------- 探照灯 ---------- */
-  function addFloodlight(px, pz, tx, tz, color, intensity, angle, sway) {
+  function addFloodlight(px, pz, tx, tz, color, intensity, angle, sway, castShadow) {
     const light = new THREE.SpotLight(color, intensity, 70, angle, 0.55, 1.2);
     light.position.set(px, 6.6, pz);
     light.target.position.set(tx, 0, tz);
+    if (castShadow) {
+      light.castShadow = true;
+      light.shadow.mapSize.set(1024, 1024);
+      light.shadow.bias = -0.002;
+    }
     group.add(light); group.add(light.target);
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 6.6, 8), mDark);
     pole.position.set(px, 3.3, pz);
@@ -264,7 +271,7 @@ export const WORLD = (function () {
     const moonLight = new THREE.DirectionalLight(0xaabcf0, 1.5);
     moonLight.position.set(45, 70, 25);
     moonLight.castShadow = true;
-    moonLight.shadow.mapSize.set(2048, 2048);
+    moonLight.shadow.mapSize.set(4096, 4096);
     moonLight.shadow.camera.left = -75; moonLight.shadow.camera.right = 75;
     moonLight.shadow.camera.top = 75; moonLight.shadow.camera.bottom = -75;
     moonLight.shadow.camera.near = 1; moonLight.shadow.camera.far = 180;
@@ -276,8 +283,10 @@ export const WORLD = (function () {
     addFloodlight(34, -6, 18, 0, 0xffb86a, 9.0, 0.55, 0.2);
     addFloodlight(0, -44, 0, -18, 0xffd08a, 8.0, 0.6, 0.15);
     addFloodlight(-44, -40, -28, -22, 0xffcf8f, 7.0, 0.45, 0.3);
-    addFloodlight(-12, 48, -10, 28, 0xffd9a0, 8.0, 0.42, 0.18);
-    addFloodlight(14, 48, 12, 28, 0xffc98a, 8.0, 0.42, 0.18);
+    addFloodlight(-12, 48, -10, 28, 0xffd9a0, 8.0, 0.42, 0.18, true);
+    addFloodlight(14, 48, 12, 28, 0xffc98a, 8.0, 0.42, 0.18, true);
+    currentExposure = 1.9;
+    currentBloom = { strength: 0.35, radius: 0.5, threshold: 1.0 };
 
     addGround(0, 0, 130, mDirt);
     // 围墙
@@ -361,7 +370,7 @@ export const WORLD = (function () {
     const sun = new THREE.DirectionalLight(0xfff3d6, 1.9);
     sun.position.set(60, 80, 30);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(4096, 4096);
     sun.shadow.camera.left = -75; sun.shadow.camera.right = 75;
     sun.shadow.camera.top = 75; sun.shadow.camera.bottom = -75;
     sun.shadow.camera.near = 1; sun.shadow.camera.far = 200;
@@ -424,6 +433,8 @@ export const WORLD = (function () {
       new THREE.Vector3(-40, 0, 0), new THREE.Vector3(40, 0, 0)
     );
     medkitPoints.push({ x: 8, z: 8 }, { x: -12, z: 18 }, { x: 24, z: -6 }, { x: -24, z: -18 }, { x: 0, z: 32 });
+    currentExposure = 1.3;
+    currentBloom = { strength: 0.28, radius: 0.4, threshold: 1.0 };
     currentPlayerSpawn = { pos: new THREE.Vector3(-42, 0, -40), yaw: Math.atan2(-42, -40) };
   }
 
@@ -439,7 +450,7 @@ export const WORLD = (function () {
     const key = new THREE.DirectionalLight(0x8ab4ff, 1.2);
     key.position.set(-40, 60, 20);
     key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.mapSize.set(4096, 4096);
     key.shadow.camera.left = -70; key.shadow.camera.right = 70;
     key.shadow.camera.top = 70; key.shadow.camera.bottom = -70;
     key.shadow.camera.near = 1; key.shadow.camera.far = 180;
@@ -511,6 +522,8 @@ export const WORLD = (function () {
       new THREE.Vector3(-48, 0, 0), new THREE.Vector3(48, 0, 0)
     );
     medkitPoints.push({ x: 0, z: 20 }, { x: -18, z: -14 }, { x: 20, z: -18 }, { x: 0, z: -30 }, { x: 14, z: 24 });
+    currentExposure = 1.6;
+    currentBloom = { strength: 0.9, radius: 0.6, threshold: 0.85 };
     currentPlayerSpawn = { pos: new THREE.Vector3(-42, 0, -42), yaw: Math.atan2(42, 42) };
   }
 
@@ -567,6 +580,7 @@ export const WORLD = (function () {
 
   return {
     MAPS, loadMap, update, applyPBR,
+    getLightingProfile: () => ({ exposure: currentExposure, bloom: currentBloom }),
     get colliders() { return colliders; },
     get hitTargets() { return hitTargets; },
     get enemySpawnPoints() { return enemySpawnPoints; },
