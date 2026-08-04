@@ -16,6 +16,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { loadPBR } from './pbr.js';
 import { MISSION } from './mission.js';
+import { VEHICLE } from './vehicle.js';
 
 // ---------- 渲染器 / 场景 / 相机 ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -182,36 +183,87 @@ function resumeGame() {
 }
 
 // ---------- 剧情模式 ----------
+let vehicle = null;
+const vehInput = { forward: false, back: false, left: false, right: false, fire: false, aimYaw: 0, aimPitch: 0 };
+let rescueMarkers = [];
+
+function isVehicleLevel(def) { return def.type === 'tank' || def.type === 'boat'; }
+
+function createVehicle(def) {
+  disposeVehicle();
+  const _origDamage = player.damage.bind(player);
+  const opts = {
+    getEnemies: () => enemies.getEnemies(),
+    damageEnemy: (e, d) => e.damage(d),
+    shellDmg: def.type === 'tank' ? 40 : 18,
+    spawnBurst: (...a) => weapons.spawnBurst(...a),
+    explode: () => { state.shake = 0.4; }
+  };
+  vehicle = def.type === 'tank' ? VEHICLE.createTank(scene, opts) : VEHICLE.createBoat(scene, opts);
+  const sp = WORLD.getPlayerSpawn().pos;
+  vehicle.pos.set(sp.x, vehicle.type === 'tank' ? 0.9 : 0.5, sp.z);
+  // 载具模式下：玩家受伤 → 载具承受
+  player.damage = (amount, fromPos) => {
+    if (vehicle && !vehicle.destroyed) { vehicle.damage(amount); if (vehicle.destroyed) _origDamage(999, fromPos); return; }
+    _origDamage(amount, fromPos);
+  };
+}
+function disposeVehicle() {
+  if (vehicle) { vehicle.dispose(); vehicle = null; }
+  for (const m of rescueMarkers) scene.remove(m);
+  rescueMarkers = [];
+}
+
+function placeRescueMarkers() {
+  for (const p of MISSION.getRescueAt()) {
+    const beacon = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.2, 20),
+      new THREE.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }));
+    beacon.position.set(p.x, 0.15, p.z);
+    scene.add(beacon);
+    rescueMarkers.push(beacon);
+  }
+}
+
+function buildCampaignMap(def) {
+  if (def.linear) WORLD.buildLinear({ scene, theme: def.theme, length: def.length, boat: def.type === 'boat', width: def.type === 'boat' ? 16 : 14, ceiling: def.theme !== 'desert' });
+  else WORLD.loadMap(scene, def.map);
+}
+
 function startCampaign(levelIdx, difficulty) {
   gameMode = 'campaign';
   AUDIO.ensure();
-  const def = MISSION.start(levelIdx, difficulty);
-  WORLD.loadMap(scene, def.map);
+  const def = MISSION.LEVELS[levelIdx];
+  buildCampaignMap(def);
   applyLightingProfile();
   UI.rebuildMinimap();
+  MISSION.start(levelIdx, difficulty);
   resetGame();
   MISSION.setupEnemies(enemies);
   medkits.reset();
+  if (isVehicleLevel(def)) createVehicle(def);
+  if (def.type === 'rescue') placeRescueMarkers();
   UI.setMissionHUD(MISSION.getHUD());
-  beginPlay();
-  showMissionIntro(def);
+  UI.showBriefing('第 ' + def.id + ' 关 · ' + def.title, def.subtitle + '。\n沿单线通道推进，消灭沿途敌人。检查点处阵亡将满血重生。', () => beginPlay());
 }
 function resumeCampaign() {
   const g = MISSION.getSavedGame();
   if (!g) return;
   gameMode = 'campaign';
   AUDIO.ensure();
-  const def = MISSION.start(g.level, g.difficulty, { checkpoint: g.checkpoint });
-  WORLD.loadMap(scene, def.map);
+  const def = MISSION.LEVELS[g.level];
+  buildCampaignMap(def);
   applyLightingProfile();
   UI.rebuildMinimap();
+  MISSION.start(g.level, g.difficulty);
   resetGame();
   MISSION.setupEnemies(enemies);
   MISSION.restoreAfterRespawn(enemies);
   medkits.reset();
-  const cp = g.checkpoint >= 0 ? def.checkpoints[g.checkpoint] : null;
-  const sp = WORLD.getPlayerSpawn();
-  if (cp) { player.setSpawn(cp.x, cp.z, Math.atan2(-(0 - cp.x), -(0 - cp.z))); }
+  if (isVehicleLevel(def)) createVehicle(def);
+  if (def.type === 'rescue') placeRescueMarkers();
+  const cps = WORLD.getCheckpoints();
+  const cp = g.checkpoint >= 0 && cps[g.checkpoint] ? cps[g.checkpoint] : null;
+  if (cp) player.setSpawn(cp.x, cp.z, Math.atan2(-(0 - cp.x), -(0 - cp.z)));
   player.health = 100; player.armor = 100;
   UI.setMissionHUD(MISSION.getHUD());
   beginPlay();
@@ -221,11 +273,12 @@ function nextCampaignLevel() {
   const cur = MISSION.currentLevel();
   if (!h || !cur) return;
   const diff = h.diff || 1;
-  const nextIdx = cur.id; // id 1-based → 下一关 index = id
+  const nextIdx = cur.id;
   if (nextIdx < MISSION.LEVELS.length) startCampaign(nextIdx, diff);
   else toMenu();
 }
 function toMenu() {
+  disposeVehicle();
   MISSION.reset();
   gameMode = 'arena';
   state.mode = 'menu';
@@ -235,11 +288,8 @@ function toMenu() {
   UI.rebuildMinimap();
   UI.buildLevelGrid();
 }
-function showMissionIntro(def) {
-  UI.checkpointToast('任务 ' + def.id + ' · ' + def.title + ' — ' + def.subtitle);
-}
 function beginPlay() {
-  weapons.setActive(true);
+  weapons.setActive(!vehicle);
   player.active = true;
   UI.setScreen('hud');
   state.mode = 'playing';
@@ -250,7 +300,8 @@ function respawnAtCheckpoint(cp) {
   MISSION.setupEnemies(enemies);
   MISSION.restoreAfterRespawn(enemies);
   medkits.reset();
-  player.setSpawn(cp.x, cp.z, Math.atan2(-(0 - cp.x), -(0 - cp.z)));
+  if (vehicle) { vehicle.pos.set(cp.x, vehicle.type === 'tank' ? 0.9 : 0.5, cp.z); vehicle.hp = vehicle.maxHp; vehicle.destroyed = false; vehicle.speed = 0; vehicle.projs.length = 0; }
+  else player.setSpawn(cp.x, cp.z, Math.atan2(-(0 - cp.x), -(0 - cp.z)));
   player.health = 100; player.armor = 100; player.protectT = 5;
   weapons.mag = { rifle: 30, smg: 32, shotgun: 8, sniper: 5, pistol: 12 };
   weapons.reserve = { rifle: 90, smg: 128, shotgun: 32, sniper: 20, pistol: 48 };
@@ -289,6 +340,10 @@ UI.init();
 UI.buildWeaponSlots(weapons.getList());
 window.MISSION = MISSION;
 
+// ---------- 载具开火输入 ----------
+window.addEventListener('mousedown', (e) => { if (e.button === 0) vehInput.fire = true; });
+window.addEventListener('mouseup', (e) => { if (e.button === 0) vehInput.fire = false; });
+
 // ---------- 指针锁定丢失（Esc）→ 暂停 ----------
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement !== renderer.domElement) {
@@ -317,7 +372,28 @@ function loop(now) {
 
   if (state.mode === 'playing') {
     state.time += dt;
-    player.update(dt);
+    if (vehicle && !vehicle.destroyed) {
+      // 载具输入 + 第三人称相机
+      vehInput.forward = !!(player._keys['KeyW'] || player._keys['ArrowUp']);
+      vehInput.back = !!(player._keys['KeyS'] || player._keys['ArrowDown']);
+      vehInput.left = !!(player._keys['KeyA'] || player._keys['ArrowLeft']);
+      vehInput.right = !!(player._keys['KeyD'] || player._keys['ArrowRight']);
+      vehInput.aimYaw -= player._mouseDX * 0.0021;
+      vehInput.aimPitch -= player._mouseDY * 0.0021;
+      vehInput.aimPitch = Math.max(-0.5, Math.min(0.5, vehInput.aimPitch));
+      player._mouseDX = player._mouseDY = 0;
+      vehicle.update(dt, vehInput);
+      player.pos.copy(vehicle.pos);
+      player.health = vehicle.hp;
+      player.armor = 0;
+      const dir = new THREE.Vector3(-Math.sin(vehInput.aimYaw), Math.sin(vehInput.aimPitch), -Math.cos(vehInput.aimYaw)).normalize();
+      const dist = vehicle.type === 'tank' ? 7 : 5;
+      const hgt = vehicle.type === 'tank' ? 4.5 : 2.8;
+      camera.position.copy(vehicle.pos).add(dir.clone().multiplyScalar(-dist)).add(new THREE.Vector3(0, hgt, 0));
+      camera.lookAt(vehicle.pos.clone().add(dir.clone().multiplyScalar(20)).setY(vehicle.pos.y + 1));
+    } else {
+      player.update(dt);
+    }
     // 屏震
     if (state.shake > 0) {
       state.shake = Math.max(0, state.shake - dt * 3);
@@ -328,7 +404,8 @@ function loop(now) {
     medkits.update(dt);
     if (gameMode === 'campaign') {
       MISSION.update(dt, {
-        enemies, player,
+        enemies, player, vehicle,
+        onRescue: (f, n) => UI.checkpointToast('已拯救 ' + f + '/' + n + ' 人质'),
         onCheckpoint: (i, total) => UI.checkpointToast('检查点 ' + i + '/' + total + ' 已激活'),
         onWin: (def, diff) => {
           weapons.setActive(false);
@@ -352,6 +429,16 @@ function loop(now) {
           const w = Math.min(st.wave, mh.max);
           pct = mh.max ? w / mh.max * 100 : 0;
           txt = '波次 ' + w + ' / ' + mh.max;
+        } else if (mh.type === 'rescue') {
+          pct = mh.max ? mh.freed / mh.max * 100 : 0;
+          txt = '拯救 ' + mh.freed + ' / ' + mh.max + (mh.freed >= mh.max ? ' · 前往撤离点' : '');
+        } else if (mh.type === 'reach' || mh.type === 'tank' || mh.type === 'boat') {
+          const end = WORLD.getEndZone();
+          if (end) {
+            const d = Math.hypot((vehicle ? vehicle.pos.x : player.pos.x) - end.x, (vehicle ? vehicle.pos.z : player.pos.z) - end.z);
+            pct = Math.max(0, Math.min(100, 100 - d / 100 * 100));
+            txt = '距终点 ' + Math.round(d) + 'm';
+          }
         }
         UI.setMissionProgress(pct, '难度 ' + (mh.diff >= 1.4 ? '困难' : '普通') + ' · ' + txt);
       }
@@ -380,7 +467,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // ---------- 调试句柄（也用于无头测试） ----------
-window.__game = { player, weapons, enemies, medkits, scene, camera, renderer, setSelectedMap, get state() { return state; } };
+window.__game = { player, weapons, enemies, medkits, scene, camera, renderer, setSelectedMap, get vehicle() { return vehicle; }, get vehInput() { return vehInput; }, get state() { return state; } };
 window.THREE = THREE;
 window.WORLD = WORLD;
 window.AUDIO = AUDIO;

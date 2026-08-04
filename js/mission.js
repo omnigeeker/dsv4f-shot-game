@@ -1,29 +1,30 @@
 /* ============================================================
- * MISSION — 剧情模式
- * 10 个线性关卡（击杀 / 守波 / 首领），难度选择，checkpoint 续玩，
- * 进度与解锁用 localStorage 持久化
+ * MISSION — 剧情模式（单线关卡版）
+ * 目标类型：reach 抵达终点 / rescue 拯救人质 / kill 清剿 /
+ *           waves 守波 / tank·boat 载具 / boss 首领
+ * 线性地图自带 checkpoint，存档续玩
  * ============================================================ */
+import { WORLD } from './world.js';
 
 const KEY = 'dsv4f_campaign_v1';
 
-/* ---------- 10 关定义 ---------- */
 export const LEVELS = [
-  { id: 1, title: '潜入基地', subtitle: '肃清基地外围的巡逻队', map: 0, type: 'kill', target: 10, checkpoints: [{ x: 0, z: -20 }] },
-  { id: 2, title: '探照灯下', subtitle: '在探照灯扫射下守住阵地', map: 0, type: 'waves', target: 2, checkpoints: [{ x: 0, z: -20 }, { x: 0, z: -38 }] },
-  { id: 3, title: '小镇清剿', subtitle: '清除沙漠小镇的武装分子', map: 1, type: 'kill', target: 15, checkpoints: [{ x: 0, z: 0 }] },
-  { id: 4, title: '沙尘封锁', subtitle: '击退小镇外围的封锁线', map: 1, type: 'kill', target: 18, checkpoints: [{ x: 0, z: 0 }] },
-  { id: 5, title: '实验室渗透', subtitle: '潜入霓虹实验室消灭守军', map: 2, type: 'kill', target: 12, checkpoints: [{ x: 0, z: 20 }] },
-  { id: 6, title: '霓虹突围', subtitle: '在实验室走廊中生存突围', map: 2, type: 'waves', target: 3, checkpoints: [{ x: 0, z: 20 }] },
-  { id: 7, title: '双线作战', subtitle: '基地腹地遭遇大规模进攻', map: 0, type: 'kill', target: 22, checkpoints: [{ x: 0, z: -20 }, { x: 0, z: -38 }] },
-  { id: 8, title: '弹尽粮绝', subtitle: '物资匮乏的沙漠绝地反击', map: 1, type: 'kill', target: 18, checkpoints: [{ x: 0, z: 0 }] },
-  { id: 9, title: '最终防线', subtitle: '实验室核心区域绝境求生', map: 2, type: 'waves', target: 5, checkpoints: [{ x: 0, z: 20 }, { x: 0, z: -20 }] },
-  { id: 10, title: '首脑', subtitle: '击败恐怖分子首领', map: 0, type: 'boss', target: 1, checkpoints: [{ x: 0, z: -20 }] }
+  { id: 1, title: '潜入基地', subtitle: '穿过基地通道，抵达撤离点', theme: 'base', linear: true, type: 'reach', length: 70 },
+  { id: 2, title: '拯救人质', subtitle: '救出被困人质，护送撤离', theme: 'base', linear: true, type: 'rescue', length: 80, target: 2 },
+  { id: 3, title: '沙漠公路', subtitle: '驾驶坦克突破公路防线', theme: 'desert', linear: true, type: 'tank', length: 90 },
+  { id: 4, title: '小镇突击', subtitle: '单线清剿小镇武装分子', theme: 'desert', linear: true, type: 'kill', length: 70, target: 12 },
+  { id: 5, title: '河流强袭', subtitle: '乘机枪快艇沿河扫射', theme: 'desert', linear: true, type: 'boat', length: 90 },
+  { id: 6, title: '实验室渗透', subtitle: '穿过霓虹实验室核心', theme: 'lab', linear: true, type: 'reach', length: 80 },
+  { id: 7, title: '霓虹突围', subtitle: '救出研究员并完成撤离', theme: 'lab', linear: true, type: 'rescue', length: 90, target: 2 },
+  { id: 8, title: '钢铁反攻', subtitle: '重装坦克全面反攻', theme: 'base', linear: true, type: 'tank', length: 110 },
+  { id: 9, title: '最终防线', subtitle: '推进至核心，坚守 3 波', theme: 'lab', linear: true, type: 'waves', length: 90, target: 3 },
+  { id: 10, title: '首脑', subtitle: '深入基地，击败恐怖分子首领', theme: 'base', linear: true, type: 'boss', length: 100 }
 ];
 
 export const MISSION = (function () {
 
   let active = false;
-  let cur = null; // 当前关卡状态
+  let cur = null;
   let saved = load();
 
   function load() {
@@ -37,34 +38,42 @@ export const MISSION = (function () {
   function status() { return cur ? cur.status : 'idle'; }
 
   /* ---------- 开始一关 ---------- */
-  function start(levelIdx, difficulty, opts = {}) {
+  function start(levelIdx, difficulty) {
     const def = LEVELS[levelIdx];
     active = true;
+    const cps = def.linear ? WORLD.getCheckpoints() : (def.checkpoints || []);
     cur = {
       def, diff: difficulty || 1,
       killsBase: 0, waveBase: 1, boss: null, bossSpawned: false,
       spawnTimer: 0.5, addTimer: 3,
       checkpointIdx: -1, reached: [],
       status: 'playing', time: 0,
-      respawnPoint: null,
-      killsAtCheckpoint: 0, waveAtCheckpoint: 1
+      killsAtCheckpoint: 0, waveAtCheckpoint: 1,
+      freed: 0,
+      checkpoints: cps,
+      rescueAt: def.type === 'rescue' ? makeRescuePoints(def) : []
     };
-    if (opts.checkpoint != null) cur.checkpointIdx = opts.checkpoint;
-    // 记录解锁与当前进度
     saved.unlocked = Math.max(saved.unlocked || 1, 1);
     saved.current = { level: levelIdx, difficulty, checkpoint: -1 };
     persist();
     return def;
   }
 
-  /* ---------- 开始时的敌人配置（由 main 调用） ---------- */
-  function setupEnemies(enemies) {
-    const type = cur.def.type;
-    if (type === 'waves') {
-      enemies.configure({ autoWave: true, diff: cur.diff });
-    } else {
-      enemies.configure({ autoWave: false, diff: cur.diff, maxAlive: 6 });
+  function makeRescuePoints(def) {
+    // 沿单线地图均匀放置人质点（避开首尾）
+    const n = def.target || 2;
+    const pts = [];
+    const start = 44, end = -(def.length - 48);
+    for (let i = 0; i < n; i++) {
+      const t = (i + 1) / (n + 1);
+      pts.push({ x: 0, z: start + (end - start) * t });
     }
+    return pts;
+  }
+
+  function setupEnemies(enemies) {
+    if (cur.def.type === 'waves') enemies.configure({ autoWave: true, diff: cur.diff });
+    else enemies.configure({ autoWave: false, diff: cur.diff, maxAlive: 5 });
   }
 
   /* ---------- 每帧更新 ---------- */
@@ -73,47 +82,66 @@ export const MISSION = (function () {
     cur.time += dt;
     const { enemies, player } = ctx;
     const st = enemies.getStats();
-    const type = cur.def.type;
+    const def = cur.def;
+    const type = def.type;
     const kills = st.kills - cur.killsBase;
+    const pos = ctx.vehicle ? ctx.vehicle.pos : player.pos;
+    const end = WORLD.getEndZone();
+    const inEnd = end && (pos.x - end.x) ** 2 + (pos.z - end.z) ** 2 < end.r * end.r;
 
-    if (type === 'kill') {
-      // 持续补怪直到达成击杀目标
-      if (st.alive < 6 && kills < cur.def.target) {
-        cur.spawnTimer -= dt;
-        if (cur.spawnTimer <= 0) { enemies.spawnEnemy(); cur.spawnTimer = 0.8; }
+    if (type === 'reach') {
+      spawnWhile(enemies, dt, 4, kills, 999);
+      if (inEnd) win(ctx);
+    } else if (type === 'rescue') {
+      // 阶段1：拯救人质
+      for (let i = 0; i < cur.rescueAt.length; i++) {
+        if (cur.rescueAt[i].freed) continue;
+        const p = cur.rescueAt[i];
+        const dx = player.pos.x - p.x, dz = player.pos.z - p.z;
+        if (dx * dx + dz * dz < 20) { cur.rescueAt[i].freed = true; cur.freed++; if (ctx.onRescue) ctx.onRescue(cur.freed, cur.rescueAt.length); }
       }
-      if (kills >= cur.def.target && st.alive === 0) win(ctx);
+      spawnWhile(enemies, dt, 5, kills, 999);
+      if (cur.freed >= def.target && inEnd) win(ctx);
+    } else if (type === 'kill') {
+      spawnWhile(enemies, dt, 6, kills, def.target);
+      if (kills >= def.target && st.alive === 0) win(ctx);
     } else if (type === 'waves') {
-      if (st.wave > cur.waveBase + cur.def.target - 1 && st.alive === 0) win(ctx);
+      if (st.wave > cur.waveBase + def.target - 1 && st.alive === 0) win(ctx);
     } else if (type === 'boss') {
-      if (!cur.bossSpawned) {
-        cur.boss = enemies.spawnBoss();
-        cur.bossSpawned = true;
-      }
+      if (!cur.bossSpawned) { cur.boss = enemies.spawnBoss(); cur.bossSpawned = true; }
       cur.addTimer -= dt;
       if (cur.addTimer <= 0 && st.alive < 5) { enemies.spawnEnemy(); cur.addTimer = 4; }
       if (cur.boss && cur.boss.dead && st.alive === 0) win(ctx);
+    } else if (type === 'tank' || type === 'boat') {
+      spawnWhile(enemies, dt, 5, kills, 999);
+      if (inEnd) win(ctx);
     }
 
-    // checkpoint 检测
-    const cps = cur.def.checkpoints;
-    for (let i = 0; i < cps.length; i++) {
+    // checkpoint（单线：沿路径）
+    for (let i = 0; i < cur.checkpoints.length; i++) {
       if (cur.reached[i]) continue;
-      const c = cps[i];
+      const c = cur.checkpoints[i];
       const dx = player.pos.x - c.x, dz = player.pos.z - c.z;
-      if (dx * dx + dz * dz < 36) { // 半径 6
+      if (dx * dx + dz * dz < 36) {
         cur.reached[i] = true;
         cur.checkpointIdx = Math.max(cur.checkpointIdx, i);
-        cur.killsAtCheckpoint = ctx.enemies.getStats().kills;
-        cur.waveAtCheckpoint = ctx.enemies.getStats().wave;
-        saved.current = { level: cur.def.id - 1, difficulty: cur.diff, checkpoint: cur.checkpointIdx };
+        cur.killsAtCheckpoint = st.kills;
+        cur.waveAtCheckpoint = st.wave;
+        saved.current = { level: def.id - 1, difficulty: cur.diff, checkpoint: cur.checkpointIdx };
         persist();
-        if (ctx.onCheckpoint) ctx.onCheckpoint(i + 1, cps.length);
+        if (ctx.onCheckpoint) ctx.onCheckpoint(i + 1, cur.checkpoints.length);
       }
     }
   }
 
-  /* ---------- 胜利 ---------- */
+  function spawnWhile(enemies, dt, maxAlive, kills, killTarget) {
+    const st = enemies.getStats();
+    if (st.alive < maxAlive && kills < killTarget) {
+      cur.spawnTimer -= dt;
+      if (cur.spawnTimer <= 0) { enemies.spawnEnemy(); cur.spawnTimer = 0.8; }
+    }
+  }
+
   function win(ctx) {
     cur.status = 'won';
     saved.unlocked = Math.max(saved.unlocked || 1, cur.def.id + 1);
@@ -122,58 +150,44 @@ export const MISSION = (function () {
     if (ctx.onWin) ctx.onWin(cur.def, cur.diff);
   }
 
-  /* ---------- 玩家死亡：返回重生点（null = 关卡重开） ---------- */
   function onDeath(ctx) {
     if (!active) return null;
-    const cps = cur.def.checkpoints;
-    const cp = cur.checkpointIdx >= 0 ? cps[cur.checkpointIdx] : null;
-    cur.respawnPoint = cp;
-    // 存档重生点
+    const cp = cur.checkpointIdx >= 0 ? cur.checkpoints[cur.checkpointIdx] : null;
     if (cp) saved.current = { level: cur.def.id - 1, difficulty: cur.diff, checkpoint: cur.checkpointIdx };
     else saved.current = { level: cur.def.id - 1, difficulty: cur.diff, checkpoint: -1 };
     persist();
     return cp;
   }
 
-  /* ---------- 从 checkpoint 重生恢复 ---------- */
   function restoreAfterRespawn(enemies) {
     const st = enemies.getStats();
-    if (cur.def.type === 'waves') {
-      st.wave = Math.max(1, cur.waveAtCheckpoint - 1); // 下一波回到 checkpoint 所在波
-    } else {
-      st.kills = cur.killsAtCheckpoint; // 保留到 checkpoint 时的击杀进度
-    }
-    enemies.configure({ autoWave: cur.def.type === 'waves', diff: cur.diff, maxAlive: 6 });
+    if (cur.def.type === 'waves') st.wave = Math.max(1, cur.waveAtCheckpoint - 1);
+    else st.kills = cur.killsAtCheckpoint;
+    enemies.configure({ autoWave: cur.def.type === 'waves', diff: cur.diff, maxAlive: 5 });
   }
 
-  /* ---------- 供 HUD 显示 ---------- */
   function getHUD() {
     if (!cur) return null;
-    const type = cur.def.type;
-    let objective = '', progress = 0, max = 1;
-    if (type === 'kill' || type === 'boss') {
-      objective = (type === 'boss' ? '击败首领' : '击杀敌人');
-      max = cur.def.target;
-    } else if (type === 'waves') {
-      objective = '守住 ' + cur.def.target + ' 波';
-      max = cur.def.target;
-    }
-    return {
-      title: cur.def.title, subtitle: cur.def.subtitle,
-      type, objective, max, progress,
-      checkpoint: cur.checkpointIdx + 1, totalCheckpoints: cur.def.checkpoints.length,
-      status: cur.status, diff: cur.diff
-    };
+    const def = cur.def;
+    let objective = '', max = 1;
+    if (def.type === 'reach') objective = '抵达撤离点';
+    else if (def.type === 'rescue') objective = cur.freed >= def.target ? '护送撤离' : '拯救人质';
+    else if (def.type === 'kill') objective = '清剿敌人';
+    else if (def.type === 'waves') objective = '坚守 ' + def.target + ' 波';
+    else if (def.type === 'tank') objective = '坦克推进 · 抵达终点';
+    else if (def.type === 'boat') objective = '快艇突击 · 抵达终点';
+    else if (def.type === 'boss') objective = '击败首领';
+    if (def.type === 'rescue') max = def.target;
+    return { title: def.title, subtitle: def.subtitle, type: def.type, objective, max, status: cur.status, diff: cur.diff, freed: cur.freed };
   }
 
   function reset() { active = false; cur = null; }
   function getLevels() { return LEVELS; }
-  function setKillsBase(n) { if (cur) cur.killsBase = n; }
-  function setWaveBase(n) { if (cur) cur.waveBase = n; }
+  function getRescueAt() { return cur ? cur.rescueAt : []; }
 
   return {
     LEVELS, start, update, setupEnemies, onDeath, restoreAfterRespawn,
     getHUD, isActive, status, reset, getUnlocked, getSavedGame,
-    getLevels, setKillsBase, setWaveBase, currentLevel
+    getLevels, getRescueAt, currentLevel
   };
 })();

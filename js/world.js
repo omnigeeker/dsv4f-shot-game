@@ -18,6 +18,8 @@ export const WORLD = (function () {
   let currentPlayerSpawn = null;
   let currentExposure = 1.9;
   let currentBloom = { strength: 0.4, radius: 0.5, threshold: 1.0 };
+  let currentEndZone = null;
+  let currentCheckpoints = [];
 
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
   const cylGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.3, 12);
@@ -537,18 +539,149 @@ export const WORLD = (function () {
   /* ---------- 加载地图 ---------- */
   function loadMap(sceneRef, index) {
     scene = sceneRef;
+    clearMap();
+    (MAPS[index] || MAPS[0]).build();
+  }
+
+  function clearMap() {
     if (group) scene.remove(group);
     colliders.length = 0;
     hitTargets.length = 0;
     enemySpawnPoints.length = 0;
     medkitPoints.length = 0;
     movingLights.length = 0;
+    currentEndZone = null;
+    currentCheckpoints = [];
     group = new THREE.Group();
     scene.add(group);
     scene.fog = null;
     scene.background = null;
     currentPlayerSpawn = null;
-    (MAPS[index] || MAPS[0]).build();
+  }
+
+  /* ============================================================
+   * buildLinear — 单线剧情关卡生成器
+   * 一条长廊从出生点通到终点信标；沿途掩体/闸门/敌人/加血包/checkpoint
+   * ============================================================ */
+  function buildLinear(cfg) {
+    scene = cfg.scene;
+    clearMap();
+    const theme = cfg.theme || 'base';
+    const L = cfg.length || 90;
+    const W = cfg.width || 14;
+    const H = cfg.height || 7;
+    const spawnZ = cfg.spawnZ !== undefined ? cfg.spawnZ : 48;
+    const endZ = spawnZ - L;
+    const halfW = W / 2;
+    const midZ = (spawnZ + endZ) / 2;
+    const isDesert = theme === 'desert', isLab = theme === 'lab';
+
+    const wallMat = isLab ? mPanel : (isDesert ? mPlaster : mConcrete);
+    const groundMat = isLab ? mFloorGrid : (isDesert ? mSand : mDirt);
+
+    // 天空 / 雾
+    if (isDesert) { scene.fog = new THREE.Fog(0xd6cab0, 30, 160); skyDay(); }
+    else if (isLab) { scene.fog = new THREE.Fog(0x0a0e16, 14, 100); scene.background = new THREE.Color(0x060810); }
+    else { scene.fog = new THREE.Fog(0x0d1520, 18, 110); skyNight(); }
+
+    // 灯光
+    if (isDesert) {
+      addLight(new THREE.AmbientLight(0xfff2dc, 1.05));
+      addLight(new THREE.HemisphereLight(0xbfd4ff, 0x9a8a6a, 1.0));
+      const sun = new THREE.DirectionalLight(0xfff3d6, 1.9);
+      sun.position.set(40, 70, 20); sun.castShadow = true;
+      sun.shadow.mapSize.set(4096, 4096);
+      sun.shadow.camera.left = -50; sun.shadow.camera.right = 50;
+      sun.shadow.camera.top = 50; sun.shadow.camera.bottom = -50;
+      sun.shadow.camera.near = 1; sun.shadow.camera.far = 180; sun.shadow.bias = -0.0004;
+      addLight(sun);
+    } else if (isLab) {
+      addLight(new THREE.AmbientLight(0x2a3e6a, 1.2));
+      addLight(new THREE.HemisphereLight(0x46629a, 0x12141c, 0.9));
+      const key = new THREE.DirectionalLight(0x8ab4ff, 1.2);
+      key.position.set(-30, 60, 20); key.castShadow = true;
+      key.shadow.mapSize.set(4096, 4096);
+      key.shadow.camera.left = -50; key.shadow.camera.right = 50;
+      key.shadow.camera.top = 50; key.shadow.camera.bottom = -50;
+      key.shadow.camera.near = 1; key.shadow.camera.far = 180; key.shadow.bias = -0.0004;
+      addLight(key);
+      for (let z = spawnZ; z > endZ; z -= 18) {
+        const l = new THREE.PointLight(0x2fe9ff, 1.2, 22, 1.8); l.position.set(0, 4, z - 9); group.add(l);
+      }
+    } else {
+      addLight(new THREE.AmbientLight(0x31405e, 1.1));
+      addLight(new THREE.HemisphereLight(0x5566a0, 0x241f12, 1.0));
+      const moon = new THREE.DirectionalLight(0xaabcf0, 1.5);
+      moon.position.set(40, 60, 20); moon.castShadow = true;
+      moon.shadow.mapSize.set(4096, 4096);
+      moon.shadow.camera.left = -50; moon.shadow.camera.right = 50;
+      moon.shadow.camera.top = 50; moon.shadow.camera.bottom = -50;
+      moon.shadow.camera.near = 1; moon.shadow.camera.far = 180; moon.shadow.bias = -0.0004;
+      addLight(moon);
+      addFloodlight(-10, spawnZ - 15, 0, endZ + 40, 0xffd9a0, 6.0, 0.5, 0.2);
+      addFloodlight(10, endZ + 15, 0, spawnZ - 40, 0xffc98a, 6.0, 0.5, 0.2);
+    }
+    currentExposure = isDesert ? 1.3 : (isLab ? 1.6 : 1.9);
+    currentBloom = { strength: isLab ? 0.9 : 0.35, radius: 0.5, threshold: isLab ? 0.85 : 1.0 };
+
+    // 地面（快艇关为水面）+ 两侧岸墙 + 端墙 + 天花板
+    let gMat = groundMat;
+    if (cfg.boat) {
+      gMat = new THREE.MeshStandardMaterial({ color: 0x1c4a66, roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.88 });
+    }
+    addGround(0, midZ, L + 20, gMat);
+    addWall(-halfW - 0.5, midZ, 1, H, L + 2, wallMat);
+    addWall(halfW + 0.5, midZ, 1, H, L + 2, wallMat);
+    addWall(0, spawnZ + 0.5, W + 2, H, 1, wallMat);
+    addWall(0, endZ - 0.5, W + 2, H, 1, wallMat);
+    if (cfg.ceiling !== false && !isDesert && !cfg.boat) addBoxNoCollide(0, H + 0.2, midZ, W + 2, 0.4, L + 2, wallMat);
+    // 快艇关：点缀礁石/浮标
+    if (cfg.boat) {
+      for (let z = spawnZ - 10; z > endZ + 10; z -= 16) {
+        addCyl((Math.random() * 2 - 1) * 5, 0.5, z, 0.5, 1.0, mStone);
+      }
+    }
+
+    // 掩体（木箱/油桶交替）
+    const coverEvery = cfg.coverEvery || 12;
+    let n = 0;
+    for (let z = spawnZ - 10; z > endZ + 8; z -= coverEvery) {
+      const side = (n++ % 2 === 0) ? -1 : 1;
+      const cx = side * (halfW * 0.4);
+      if (Math.random() > 0.35) addBox(cx, 1.1, z, 2.2, 2.2, 2.2, mCrate);
+      else addCyl(cx, 0.65, z, 0.6, 1.3, mBarrel);
+      if (Math.random() > 0.7) addBox(-cx, 1.1, z - 2.5, 2.2, 2.2, 2.2, mCrate);
+    }
+    // 闸门（chokepoint 柱子）
+    const gateEvery = cfg.gateEvery || 20;
+    for (let z = spawnZ - gateEvery; z > endZ; z -= gateEvery) {
+      addBox(-halfW * 0.7, 1.5, z, 1.5, 3, 1.5, wallMat);
+      addBox(halfW * 0.7, 1.5, z, 1.5, 3, 1.5, wallMat);
+    }
+    // 敌人出生点（每段一个）
+    const roomEvery = cfg.roomEvery || 14;
+    for (let z = spawnZ - roomEvery / 2; z > endZ + roomEvery / 2; z -= roomEvery) {
+      enemySpawnPoints.push(new THREE.Vector3(0, 0, z));
+    }
+    // checkpoint（每 2 段一个）
+    const cpEvery = cfg.checkpointEvery || (roomEvery * 2);
+    for (let z = spawnZ - cpEvery; z > endZ + cpEvery / 2; z -= cpEvery) {
+      currentCheckpoints.push({ x: 0, z });
+    }
+    // 加血包
+    for (let z = spawnZ - 20; z > endZ + 12; z -= 24) medkitPoints.push({ x: 0, z });
+
+    // 终点信标
+    currentEndZone = { x: 0, z: endZ, r: 4 };
+    const beacon = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.3, 24),
+      new THREE.MeshBasicMaterial({ color: 0x3aff7a, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+    beacon.position.set(0, 0.2, endZ);
+    group.add(beacon);
+    const beaconLight = new THREE.PointLight(0x3aff7a, 2, 15, 2);
+    beaconLight.position.set(0, 4, endZ);
+    group.add(beaconLight);
+
+    currentPlayerSpawn = { pos: new THREE.Vector3(0, 0, spawnZ - 3), yaw: 0 };
   }
 
   /* ---------- 更新（探照灯扫描） ---------- */
@@ -579,12 +712,14 @@ export const WORLD = (function () {
   }
 
   return {
-    MAPS, loadMap, update, applyPBR,
+    MAPS, loadMap, buildLinear, update, applyPBR,
     getLightingProfile: () => ({ exposure: currentExposure, bloom: currentBloom }),
     get colliders() { return colliders; },
     get hitTargets() { return hitTargets; },
     get enemySpawnPoints() { return enemySpawnPoints; },
     get medkitPoints() { return medkitPoints; },
-    getPlayerSpawn() { return currentPlayerSpawn; }
+    getPlayerSpawn() { return currentPlayerSpawn; },
+    getEndZone() { return currentEndZone; },
+    getCheckpoints() { return currentCheckpoints; }
   };
 })();

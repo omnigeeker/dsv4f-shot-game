@@ -49,7 +49,10 @@ export const UI = (function () {
       missionProgress: document.getElementById('mission-progress'),
       checkpointToast: document.getElementById('checkpoint-toast'),
       victory: document.getElementById('victory'),
-      victoryInfo: document.getElementById('victory-info')
+      victoryInfo: document.getElementById('victory-info'),
+      briefing: document.getElementById('briefing'),
+      briefingTitle: document.getElementById('briefing-title'),
+      briefingText: document.getElementById('briefing-text')
     };
     els.selectedDiff = 1;
     // 换弹提示（动态创建）
@@ -117,6 +120,10 @@ export const UI = (function () {
     document.getElementById('campaign-back').addEventListener('click', () => { if (handlers.toMenu) handlers.toMenu(); });
     document.getElementById('next-level-btn').addEventListener('click', () => { if (handlers.nextLevel) handlers.nextLevel(); });
     document.getElementById('victory-menu-btn').addEventListener('click', () => { if (handlers.toMenu) handlers.toMenu(); });
+    document.getElementById('briefing-start').addEventListener('click', () => {
+      els.briefing.classList.add('hidden');
+      if (handlers.briefingStart) handlers.briefingStart();
+    });
 
     window.addEventListener('pointerlockchange', onLockChange);
   }
@@ -178,6 +185,13 @@ export const UI = (function () {
     els.checkpointToast.classList.remove('show');
     void els.checkpointToast.offsetWidth;
     els.checkpointToast.classList.add('show');
+  }
+
+  function showBriefing(title, text, cb) {
+    els.briefingTitle.textContent = title;
+    els.briefingText.textContent = text;
+    handlers.briefingStart = cb || null;
+    els.briefing.classList.remove('hidden');
   }
 
   function victory(info, hasNext) {
@@ -412,5 +426,5 @@ export const UI = (function () {
   }
 
   return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, healLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap, showScope, buildWeaponSlots,
-    setMode, buildLevelGrid, setMissionHUD, updateMissionHUD, hideMissionHUD, setMissionProgress, checkpointToast, victory, setScreenHidden: (id, hidden) => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', hidden); } };
+    setMode, buildLevelGrid, setMissionHUD, updateMissionHUD, hideMissionHUD, setMissionProgress, checkpointToast, victory, showBriefing, setScreenHidden: (id, hidden) => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', hidden); } };
 })();
