@@ -13,7 +13,7 @@ python3 -m http.server 8080
 # 然后浏览器访问 http://localhost:8080
 ```
 
-线上版本已部署到 **Vercel**（见仓库主页）。
+线上版本已部署到 **Vercel**：**https://dsv4f-shot-game.vercel.app**
 
 ## 操作
 
