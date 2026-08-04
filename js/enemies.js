@@ -39,41 +39,63 @@ export const ENEMIES = (function () {
       (parent || g).add(m);
       return m;
     };
-    // 腿 + 靴
-    parts.legL = add(0.17, 0.55, 0.2, -0.14, 0.28, 0, 'pants');
-    parts.legR = add(0.17, 0.55, 0.2, 0.14, 0.28, 0, 'pants');
-    add(0.16, 0.13, 0.27, 0, -0.3, 0.04, 'boot', parts.legL);
-    add(0.16, 0.13, 0.27, 0, -0.3, 0.04, 'boot', parts.legR);
-    // 躯干 + 防弹背心 + 背包 + 腰带
-    parts.torso = add(0.54, 0.5, 0.3, 0, 0.92, 0, 'cloth');
-    parts.vest = add(0.58, 0.4, 0.36, 0, 0.94, 0, 'vest');
-    add(0.4, 0.42, 0.16, 0, 0.86, -0.25, 'pack');
-    parts.belt = add(0.56, 0.1, 0.32, 0, 0.66, 0, 'belt');
-    // 头 + 头盔 + 发光面罩
-    parts.head = add(0.28, 0.28, 0.28, 0, 1.44, 0, 'skin');
-    parts.helmet = add(0.32, 0.15, 0.34, 0, 1.57, 0, 'helmet');
-    add(0.3, 0.05, 0.06, 0, 1.52, -0.16, 'visor');
+    const cap = (r, len, x, y, z, mat, parent) => {
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 10), mats[mat]);
+      m.position.set(x, y, z);
+      (parent || g).add(m);
+      return m;
+    };
+    // ===== 腿（髋部 pivot + 胶囊 + 靴）=====
+    parts.legL = new THREE.Group(); parts.legL.position.set(-0.14, 1.0, 0); g.add(parts.legL);
+    parts.legR = new THREE.Group(); parts.legR.position.set(0.14, 1.0, 0); g.add(parts.legR);
+    const legLM = cap(0.085, 0.5, 0, -0.36, 0, 'pants', parts.legL);
+    const legRM = cap(0.085, 0.5, 0, -0.36, 0, 'pants', parts.legR);
+    add(0.16, 0.13, 0.27, 0, -0.68, 0.03, 'boot', parts.legL);
+    add(0.16, 0.13, 0.27, 0, -0.68, 0.03, 'boot', parts.legR);
+    // ===== 躯干 + 背心 + 肩垫 + 背包 + 腰带 =====
+    parts.torso = cap(0.22, 0.42, 0, 1.05, 0, 'cloth');
+    add(0.5, 0.42, 0.34, 0, 1.06, 0, 'vest');
+    add(0.22, 0.12, 0.3, -0.28, 1.3, 0, 'vest');   // 左肩垫
+    add(0.22, 0.12, 0.3, 0.28, 1.3, 0, 'vest');    // 右肩垫
+    add(0.32, 0.36, 0.14, 0, 1.0, -0.26, 'pack');
+    parts.belt = add(0.46, 0.09, 0.28, 0, 0.78, 0, 'belt');
+    // ===== 手臂（肩部 pivot + 胶囊 + 手）=====
+    parts.armL = new THREE.Group(); parts.armL.position.set(-0.34, 1.32, 0.02); g.add(parts.armL);
+    parts.armR = new THREE.Group(); parts.armR.position.set(0.34, 1.32, 0.02); g.add(parts.armR);
+    const armLM = cap(0.075, 0.34, 0, -0.28, 0.06, 'cloth', parts.armL);
+    const armRM = cap(0.075, 0.34, 0, -0.28, 0.06, 'cloth', parts.armR);
+    add(0.11, 0.11, 0.13, 0, -0.5, 0.1, 'glove', parts.armL);
+    add(0.11, 0.11, 0.13, 0, -0.5, 0.1, 'glove', parts.armR);
+    // ===== 头 + 头盔 + 发光面罩 =====
+    parts.head = new THREE.Mesh(new THREE.SphereGeometry(0.155, 14, 12), mats.skin);
+    parts.head.position.set(0, 1.58, 0);
+    g.add(parts.head);
     parts.head.userData.isHead = true;
-    // 手臂 + 手
-    parts.armL = add(0.12, 0.46, 0.14, -0.4, 0.98, 0.02, 'cloth');
-    parts.armR = add(0.12, 0.46, 0.14, 0.4, 0.98, 0.02, 'cloth');
-    add(0.1, 0.1, 0.12, 0, -0.3, 0.1, 'glove', parts.armL);
-    add(0.1, 0.1, 0.12, 0, -0.3, 0.1, 'glove', parts.armR);
-    // 枪（枪身 + 枪管 + 弹匣 + 枪口）
-    parts.gun = add(0.08, 0.1, 0.55, 0.42, 0.88, -0.4, 'gun');
-    add(0.04, 0.04, 0.28, 0.42, 0.9, -0.74, 'gunDark');
-    add(0.05, 0.13, 0.08, 0.42, 0.78, -0.34, 'gunDark');
-    parts.gunTip = add(0.05, 0.05, 0.05, 0.42, 0.9, -0.9, 'gunDark');
-    // 命中注册
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.19, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), mats.helmet);
+    helmet.position.set(0, 1.66, 0);
+    g.add(helmet);
+    add(0.28, 0.06, 0.07, 0, 1.6, -0.16, 'visor');
+    // ===== 步枪（机匣/枪管/弹匣/枪托/瞄具）=====
+    const gunG = new THREE.Group(); gunG.position.set(0.3, 1.08, -0.5); g.add(gunG);
+    add(0.06, 0.08, 0.42, 0, 0, 0.05, 'gun', gunG);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.5, 8), mats.gunDark);
+    barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.02, -0.28); gunG.add(barrel);
+    add(0.05, 0.12, 0.09, 0, -0.08, 0.02, 'gunDark', gunG);   // 弹匣
+    add(0.04, 0.1, 0.06, 0, -0.07, 0.14, 'gunDark', gunG);    // 握把
+    add(0.06, 0.08, 0.16, 0, 0.02, 0.22, 'gunDark', gunG);    // 枪托
+    add(0.02, 0.03, 0.08, 0, 0.08, -0.05, 'gunDark', gunG);   // 瞄具
+    parts.gun = gunG;
+    parts.gunTip = add(0.04, 0.04, 0.04, 0, 0.02, -0.5, 'gunDark', gunG);
+    // ===== 命中注册 =====
     const reg = (m) => { m.userData.enemy = null; m.userData.isHead = m.userData.isHead || false; m.castShadow = true; hitMeshes.push(m); return m; };
-    reg(parts.torso); reg(parts.head); reg(parts.legL); reg(parts.legR); reg(parts.armL); reg(parts.armR);
-    // 枪口火光（加法平面 + 点光）
+    reg(parts.torso); reg(parts.head); reg(legLM); reg(legRM); reg(armLM); reg(armRM);
+    // ===== 枪口火光（加法平面 + 点光）=====
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0xffe0a0, transparent: true, opacity: 0, depthWrite: false,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide
     });
-    parts.flash = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.25), flashMat);
-    parts.flash.position.set(0.42, 0.9, -0.93);
+    parts.flash = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.22), flashMat);
+    parts.flash.position.set(0.3, 1.1, -1.0);
     g.add(parts.flash);
     parts.flashLight = new THREE.PointLight(0xffb060, 0, 7, 2);
     parts.flashLight.position.copy(parts.flash.position);
