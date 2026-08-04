@@ -137,6 +137,48 @@ export const WORLD = (function () {
     }
   }
 
+  /* ---------- 云朵（白天） ---------- */
+  function addClouds() {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const x = c.getContext('2d');
+    for (let i = 0; i < 8; i++) {
+      const px = 30 + Math.random() * 196, py = 40 + Math.random() * 48, pr = 18 + Math.random() * 34;
+      const gg = x.createRadialGradient(px, py, pr * 0.15, px, py, pr);
+      gg.addColorStop(0, 'rgba(255,255,255,0.9)');
+      gg.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = gg; x.beginPath(); x.arc(px, py, pr, 0, Math.PI * 2); x.fill();
+    }
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    for (let i = 0; i < 9; i++) {
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(45 + Math.random() * 35, 13 + Math.random() * 8),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false, fog: false })
+      );
+      const a = Math.random() * Math.PI * 2, r = 140 + Math.random() * 90;
+      m.position.set(Math.cos(a) * r, 65 + Math.random() * 45, Math.sin(a) * r);
+      m.rotation.x = -Math.PI / 2;
+      group.add(m);
+    }
+  }
+
+  /* ---------- 地面碎石（纯视觉） ---------- */
+  function scatterRocks(n, spread, mat) {
+    const rocks = new THREE.InstancedMesh(boxGeo, mat || mDark, n);
+    const mtx = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const pos = new THREE.Vector3();
+    for (let i = 0; i < n; i++) {
+      const s = 0.18 + Math.random() * 0.45;
+      pos.set((Math.random() * 2 - 1) * spread, s * 0.28, (Math.random() * 2 - 1) * spread);
+      q.setFromEuler(new THREE.Euler(Math.random(), Math.random() * 3, Math.random()));
+      mtx.compose(pos, q, new THREE.Vector3(s, s * 0.6, s));
+      rocks.setMatrixAt(i, mtx);
+    }
+    rocks.instanceMatrix.needsUpdate = true;
+    rocks.receiveShadow = true;
+    group.add(rocks);
+  }
+
   /* ---------- 夜空 ---------- */
   function skyNight() {
     const sky = document.createElement('canvas'); sky.width = 64; sky.height = 512;
@@ -296,6 +338,7 @@ export const WORLD = (function () {
     addBox(18, 0.5, -36, 4.2, 1.0, 2.0, mRust);
     addBox(-33, 0.45, 34, 3.0, 0.9, 2.4, mConcrete);
     addBox(46, 0.5, 20, 3.0, 1.0, 2.6, mRust);
+    scatterRocks(50, 45);
 
     enemySpawnPoints.push(
       new THREE.Vector3(-44, 0, -44), new THREE.Vector3(44, 0, -44),
@@ -356,6 +399,8 @@ export const WORLD = (function () {
     addBox(-10, 1.0, 8, 4, 0.35, 2.5, mWoodLight);
     // 棕榈树
     palm(6, -18); palm(-8, 24); palm(22, 6); palm(-20, -26); palm(26, 36); palm(-30, -6);
+    addClouds();
+    scatterRocks(60, 46, mStone);
     // 木箱 / 油桶 / 沙袋
     addBox(4, 1.1, -6, 2.2, 2.2, 2.2, mCrate); addBox(6, 1.1, -7, 2.2, 2.2, 2.2, mCrate);
     addBox(-5, 1.1, -2, 2.2, 2.2, 2.2, mCrate); addBox(-7, 1.1, -3, 2.2, 2.2, 2.2, mCrate);

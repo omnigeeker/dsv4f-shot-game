@@ -14,11 +14,18 @@ export const ENEMIES = (function () {
 
   /* ---------- 基础材质（每机器人克隆） ---------- */
   const baseMats = {
-    cloth: new THREE.MeshStandardMaterial({ color: 0x57624c, roughness: 0.9, metalness: 0, emissive: 0x1a2434, emissiveIntensity: 0.35 }),
-    pants: new THREE.MeshStandardMaterial({ color: 0x4c4638, roughness: 0.95, metalness: 0, emissive: 0x141c28, emissiveIntensity: 0.3 }),
+    cloth: new THREE.MeshStandardMaterial({ color: 0x5d6a50, roughness: 0.9, metalness: 0, emissive: 0x1a2434, emissiveIntensity: 0.35 }),
+    pants: new THREE.MeshStandardMaterial({ color: 0x4a4436, roughness: 0.95, metalness: 0, emissive: 0x141c28, emissiveIntensity: 0.3 }),
     skin: new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 0.85, metalness: 0, emissive: 0x221408, emissiveIntensity: 0.25 }),
-    gun: new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.5, metalness: 0.6 }),
-    cap: new THREE.MeshStandardMaterial({ color: 0x3a3f32, roughness: 0.8, metalness: 0, emissive: 0x1a2434, emissiveIntensity: 0.3 })
+    gun: new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.45, metalness: 0.65 }),
+    gunDark: new THREE.MeshStandardMaterial({ color: 0x141618, roughness: 0.5, metalness: 0.5 }),
+    vest: new THREE.MeshStandardMaterial({ color: 0x3a4436, roughness: 0.75, metalness: 0.15, emissive: 0x10181c, emissiveIntensity: 0.25 }),
+    pack: new THREE.MeshStandardMaterial({ color: 0x333a30, roughness: 0.9, metalness: 0, emissive: 0x0e1418, emissiveIntensity: 0.25 }),
+    helmet: new THREE.MeshStandardMaterial({ color: 0x3c4638, roughness: 0.6, metalness: 0.3, emissive: 0x121a1e, emissiveIntensity: 0.3 }),
+    visor: new THREE.MeshStandardMaterial({ color: 0x16202c, roughness: 0.2, metalness: 0.8, emissive: 0x3fd8ff, emissiveIntensity: 1.4 }),
+    belt: new THREE.MeshStandardMaterial({ color: 0x2e2e28, roughness: 0.8, metalness: 0.1 }),
+    boot: new THREE.MeshStandardMaterial({ color: 0x1e1e1a, roughness: 0.85, metalness: 0.1 }),
+    glove: new THREE.MeshStandardMaterial({ color: 0x262420, roughness: 0.9, metalness: 0 })
   };
 
   function buildModel() {
@@ -32,21 +39,31 @@ export const ENEMIES = (function () {
       (parent || g).add(m);
       return m;
     };
-    // 腿
-    parts.legL = add(0.18, 0.62, 0.22, -0.15, 0.31, 0, 'pants');
-    parts.legR = add(0.18, 0.62, 0.22, 0.15, 0.31, 0, 'pants');
-    // 躯干
-    parts.torso = add(0.56, 0.62, 0.32, 0, 0.95, 0, 'cloth');
-    parts.belt = add(0.58, 0.1, 0.34, 0, 0.66, 0, 'cap');
-    // 头
-    parts.head = add(0.3, 0.3, 0.3, 0, 1.44, 0, 'skin');
-    parts.cap = add(0.34, 0.09, 0.34, 0, 1.59, 0, 'cap');
+    // 腿 + 靴
+    parts.legL = add(0.17, 0.55, 0.2, -0.14, 0.28, 0, 'pants');
+    parts.legR = add(0.17, 0.55, 0.2, 0.14, 0.28, 0, 'pants');
+    add(0.16, 0.13, 0.27, 0, -0.3, 0.04, 'boot', parts.legL);
+    add(0.16, 0.13, 0.27, 0, -0.3, 0.04, 'boot', parts.legR);
+    // 躯干 + 防弹背心 + 背包 + 腰带
+    parts.torso = add(0.54, 0.5, 0.3, 0, 0.92, 0, 'cloth');
+    parts.vest = add(0.58, 0.4, 0.36, 0, 0.94, 0, 'vest');
+    add(0.4, 0.42, 0.16, 0, 0.86, -0.25, 'pack');
+    parts.belt = add(0.56, 0.1, 0.32, 0, 0.66, 0, 'belt');
+    // 头 + 头盔 + 发光面罩
+    parts.head = add(0.28, 0.28, 0.28, 0, 1.44, 0, 'skin');
+    parts.helmet = add(0.32, 0.15, 0.34, 0, 1.57, 0, 'helmet');
+    add(0.3, 0.05, 0.06, 0, 1.52, -0.16, 'visor');
     parts.head.userData.isHead = true;
-    // 手臂（持枪朝 -z）
-    parts.armL = add(0.13, 0.5, 0.15, -0.38, 1.0, 0.02, 'cloth');
-    parts.armR = add(0.13, 0.5, 0.15, 0.38, 1.0, 0.02, 'cloth');
-    parts.gun = add(0.09, 0.11, 0.6, 0.4, 0.9, -0.42, 'gun');
-    parts.gunTip = add(0.05, 0.05, 0.05, 0.4, 0.9, -0.75, 'gun');
+    // 手臂 + 手
+    parts.armL = add(0.12, 0.46, 0.14, -0.4, 0.98, 0.02, 'cloth');
+    parts.armR = add(0.12, 0.46, 0.14, 0.4, 0.98, 0.02, 'cloth');
+    add(0.1, 0.1, 0.12, 0, -0.3, 0.1, 'glove', parts.armL);
+    add(0.1, 0.1, 0.12, 0, -0.3, 0.1, 'glove', parts.armR);
+    // 枪（枪身 + 枪管 + 弹匣 + 枪口）
+    parts.gun = add(0.08, 0.1, 0.55, 0.42, 0.88, -0.4, 'gun');
+    add(0.04, 0.04, 0.28, 0.42, 0.9, -0.74, 'gunDark');
+    add(0.05, 0.13, 0.08, 0.42, 0.78, -0.34, 'gunDark');
+    parts.gunTip = add(0.05, 0.05, 0.05, 0.42, 0.9, -0.9, 'gunDark');
     // 命中注册
     const reg = (m) => { m.userData.enemy = null; m.userData.isHead = m.userData.isHead || false; m.castShadow = true; hitMeshes.push(m); return m; };
     reg(parts.torso); reg(parts.head); reg(parts.legL); reg(parts.legR); reg(parts.armL); reg(parts.armR);
@@ -56,7 +73,7 @@ export const ENEMIES = (function () {
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide
     });
     parts.flash = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.25), flashMat);
-    parts.flash.position.set(0.4, 0.9, -0.78);
+    parts.flash.position.set(0.42, 0.9, -0.93);
     g.add(parts.flash);
     parts.flashLight = new THREE.PointLight(0xffb060, 0, 7, 2);
     parts.flashLight.position.copy(parts.flash.position);
