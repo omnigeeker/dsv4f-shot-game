@@ -112,14 +112,7 @@ export const WORLD = (function () {
     fixture.position.set(px, 6.7, pz);
     group.add(fixture);
     colliders.push({ minX: px - 0.14, minY: 0, minZ: pz - 0.14, maxX: px + 0.14, maxY: 6.6, maxZ: pz + 0.14 });
-    const dir = new THREE.Vector3(tx - px, 0 - 6.6, tz - pz);
-    const len = dir.length();
-    const cone = new THREE.ConeGeometry(2.6, len, 12, 1, true);
-    const coneMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-    const coneMesh = new THREE.Mesh(cone, coneMat);
-    coneMesh.position.copy(light.position).add(dir.clone().multiplyScalar(0.5));
-    coneMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-    group.add(coneMesh);
+    // 不用筒状体积光锥（太生硬），只留地面光池
     const pool = new THREE.Mesh(new THREE.CircleGeometry(4.6, 24), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false }));
     pool.rotation.x = -Math.PI / 2;
     pool.position.set(tx, 0.12, tz);
@@ -624,17 +617,28 @@ export const WORLD = (function () {
     currentExposure = isDesert ? 1.3 : (isLab ? 1.6 : 1.9);
     currentBloom = { strength: isLab ? 0.9 : 0.35, radius: 0.5, threshold: isLab ? 0.85 : 1.0 };
 
-    // 地面（快艇关为水面）+ 两侧岸墙 + 端墙 + 天花板
+    // 地面（快艇关为水面）
     let gMat = groundMat;
     if (cfg.boat) {
       gMat = new THREE.MeshStandardMaterial({ color: 0x1c4a66, roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.88 });
     }
     addGround(0, midZ, L + 20, gMat);
-    addWall(-halfW - 0.5, midZ, 1, H, L + 2, wallMat);
-    addWall(halfW + 0.5, midZ, 1, H, L + 2, wallMat);
-    addWall(0, spawnZ + 0.5, W + 2, H, 1, wallMat);
-    addWall(0, endZ - 0.5, W + 2, H, 1, wallMat);
-    if (cfg.ceiling !== false && !isDesert && !cfg.boat) addBoxNoCollide(0, H + 0.2, midZ, W + 2, 0.4, L + 2, wallMat);
+    // 分段走廊：每段宽度由 pattern 决定（房间/窄巷/通道各不相同）
+    const segLen = 14;
+    const segCount = Math.max(1, Math.round(L / segLen));
+    const pattern = cfg.pattern && cfg.pattern.length ? cfg.pattern : [W];
+    const maxW = Math.max(...pattern.map(x => x || W), W);
+    // 端墙（覆盖最宽段）
+    addWall(0, spawnZ + 0.5, maxW + 4, H, 1, wallMat);
+    addWall(0, endZ - 0.5, maxW + 4, H, 1, wallMat);
+    for (let i = 0; i < segCount; i++) {
+      const segZ = spawnZ - i * segLen - segLen / 2;
+      const w = pattern[i % pattern.length] || W;
+      const hw = w / 2;
+      addWall(-hw - 0.5, segZ, 1, H, segLen + 2, wallMat);
+      addWall(hw + 0.5, segZ, 1, H, segLen + 2, wallMat);
+    }
+    if (cfg.ceiling !== false && !isDesert && !cfg.boat) addBoxNoCollide(0, H + 0.2, midZ, maxW + 2, 0.4, L + 2, wallMat);
     // 快艇关：点缀礁石/浮标
     if (cfg.boat) {
       for (let z = spawnZ - 10; z > endZ + 10; z -= 16) {

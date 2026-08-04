@@ -240,26 +240,28 @@ function placeRescueMarkers() {
 }
 
 function buildCampaignMap(def) {
-  if (def.linear) WORLD.buildLinear({ scene, theme: def.theme, length: def.length, boat: def.type === 'boat', width: def.type === 'boat' ? 16 : 14, ceiling: def.theme !== 'desert' });
+  if (def.linear) WORLD.buildLinear({ scene, theme: def.theme, length: def.length, boat: def.type === 'boat', width: def.type === 'boat' ? 16 : 14, ceiling: def.theme !== 'desert', pattern: def.pattern });
   else WORLD.loadMap(scene, def.map);
 }
 
 function startCampaign(levelIdx, difficulty) {
   gameMode = 'campaign';
   AUDIO.ensure();
+  UI.setScreenHidden('victory', true); // 修复：进入下一关时先隐藏胜利界面
   const def = MISSION.LEVELS[levelIdx];
   buildCampaignMap(def);
   applyLightingProfile();
   UI.rebuildMinimap();
   MISSION.start(levelIdx, difficulty);
   resetGame();
+  player.protectT = 8; // 开局 8 秒护盾，确保开局不被攻击
   MISSION.setupEnemies(enemies);
   MISSION.preplaceEnemies(enemies);
   medkits.reset();
   if (isVehicleLevel(def)) createVehicle(def);
   if (def.type === 'rescue') placeRescueMarkers();
   UI.setMissionHUD(MISSION.getHUD());
-  UI.showBriefing('第 ' + def.id + ' 关 · ' + def.title, def.subtitle + '。\n敌人分布在通道各处巡逻——进入视野或发出枪声才会被发现。检查点处阵亡将满血重生。', () => beginPlay());
+  UI.showBriefing('第 ' + def.id + ' 关 · ' + def.title, def.subtitle + '。\n敌人分布在通道各处巡逻——进入视野或发出枪声才会被发现。开局有护盾，检查点处阵亡将满血重生。', () => beginPlay());
 }
 function resumeCampaign() {
   const g = MISSION.getSavedGame();
@@ -272,6 +274,7 @@ function resumeCampaign() {
   UI.rebuildMinimap();
   MISSION.start(g.level, g.difficulty);
   resetGame();
+  player.protectT = 8;
   MISSION.setupEnemies(enemies);
   MISSION.preplaceEnemies(enemies);
   medkits.reset();

@@ -9,16 +9,16 @@ import { WORLD } from './world.js';
 const KEY = 'dsv4f_campaign_v1';
 
 export const LEVELS = [
-  { id: 1, title: '潜入基地', subtitle: '穿过基地通道，抵达撤离点', theme: 'base', linear: true, type: 'reach', length: 70, enemies: 8 },
-  { id: 2, title: '拯救人质', subtitle: '救出被困人质，护送撤离', theme: 'base', linear: true, type: 'rescue', length: 80, target: 2, enemies: 10 },
-  { id: 3, title: '沙漠公路', subtitle: '驾驶坦克突破公路防线', theme: 'desert', linear: true, type: 'tank', length: 90, enemies: 12 },
-  { id: 4, title: '小镇突击', subtitle: '单线清剿小镇武装分子', theme: 'desert', linear: true, type: 'kill', length: 70, enemies: 12 },
-  { id: 5, title: '河流强袭', subtitle: '乘机枪快艇沿河扫射', theme: 'desert', linear: true, type: 'boat', length: 90, enemies: 14 },
-  { id: 6, title: '实验室渗透', subtitle: '穿过霓虹实验室核心', theme: 'lab', linear: true, type: 'reach', length: 80, enemies: 14 },
-  { id: 7, title: '霓虹突围', subtitle: '救出研究员并完成撤离', theme: 'lab', linear: true, type: 'rescue', length: 90, target: 2, enemies: 16 },
-  { id: 8, title: '钢铁反攻', subtitle: '重装坦克全面反攻', theme: 'base', linear: true, type: 'tank', length: 110, enemies: 18 },
-  { id: 9, title: '最终防线', subtitle: '推进至核心，坚守 3 波', theme: 'lab', linear: true, type: 'waves', length: 90, target: 3, enemies: 0 },
-  { id: 10, title: '首脑', subtitle: '深入基地，击败恐怖分子首领', theme: 'base', linear: true, type: 'boss', length: 100, enemies: 8 }
+  { id: 1, title: '潜入基地', subtitle: '穿过基地通道，抵达撤离点', theme: 'base', linear: true, type: 'reach', length: 70, enemies: 8, pattern: [12, 12, 16, 12, 12, 16] },
+  { id: 2, title: '拯救人质', subtitle: '救出被困人质，护送撤离', theme: 'base', linear: true, type: 'rescue', length: 80, target: 2, enemies: 10, pattern: [14, 20, 14, 14, 20, 14] },
+  { id: 3, title: '沙漠公路', subtitle: '驾驶坦克突破公路防线', theme: 'desert', linear: true, type: 'tank', length: 90, enemies: 12, pattern: [18, 18, 18, 18, 18, 18] },
+  { id: 4, title: '小镇突击', subtitle: '单线清剿小镇武装分子', theme: 'desert', linear: true, type: 'kill', length: 70, enemies: 12, pattern: [11, 16, 11, 16, 11, 16, 11] },
+  { id: 5, title: '河流强袭', subtitle: '乘机枪快艇沿河扫射', theme: 'desert', linear: true, type: 'boat', length: 90, enemies: 14, pattern: [16] },
+  { id: 6, title: '实验室渗透', subtitle: '穿过霓虹实验室核心', theme: 'lab', linear: true, type: 'reach', length: 80, enemies: 14, pattern: [13, 13, 18, 13, 13, 18] },
+  { id: 7, title: '霓虹突围', subtitle: '救出研究员并完成撤离', theme: 'lab', linear: true, type: 'rescue', length: 90, target: 2, enemies: 16, pattern: [15, 22, 15, 15, 22, 15] },
+  { id: 8, title: '钢铁反攻', subtitle: '重装坦克全面反攻', theme: 'base', linear: true, type: 'tank', length: 110, enemies: 18, pattern: [20, 20, 20, 20, 20, 20] },
+  { id: 9, title: '最终防线', subtitle: '推进至核心，坚守 3 波', theme: 'lab', linear: true, type: 'waves', length: 90, target: 3, enemies: 0, pattern: [14, 10, 14, 10, 14, 10, 14, 10] },
+  { id: 10, title: '首脑', subtitle: '深入基地，击败恐怖分子首领', theme: 'base', linear: true, type: 'boss', length: 100, enemies: 8, pattern: [16, 16, 16, 16, 16, 26] }
 ];
 
 export const MISSION = (function () {
@@ -71,14 +71,18 @@ export const MISSION = (function () {
     return pts;
   }
 
-  /* ---------- 预放置敌人（每处 ≤3，不持续刷怪） ---------- */
+  /* ---------- 预放置敌人（每处 ≤3，不持续刷怪；远离出生点） ---------- */
   function preplaceEnemies(enemies) {
     if (cur.def.type === 'waves') return; // 波次关由自动波次生成
     const spawns = WORLD.enemySpawnPoints;
     if (!spawns.length) return;
+    const spawnPos = WORLD.getPlayerSpawn() ? WORLD.getPlayerSpawn().pos : null;
+    // 过滤掉离玩家出生点太近的刷怪点（确保开局不被围殴）
+    const far = spawns.filter(p => !spawnPos || Math.hypot(p.x - spawnPos.x, p.z - spawnPos.z) > 14);
+    const pool = far.length ? far : spawns;
     const count = cur.totalEnemies;
     for (let i = 0; i < count; i++) {
-      const pt = spawns[i % spawns.length];
+      const pt = pool[i % pool.length];
       enemies.spawnAt(pt);
     }
     if (cur.def.type === 'boss') {
