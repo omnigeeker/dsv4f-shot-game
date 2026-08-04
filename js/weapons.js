@@ -417,16 +417,24 @@ window.WEAPONS = (function () {
         }
       }
 
-      // 枪模动画（后坐踢 + 行走晃动）
+      // 换弹动作：下探 → 停留(换弹匣) → 回升
+      let reloadEnv = 0;
+      if (state.reloading) {
+        const rw = SPECS[state.current];
+        const prog = 1 - state.reloadT / rw.reloadTime;
+        reloadEnv = prog < 0.35 ? (prog / 0.35) : (prog < 0.75 ? 1 : Math.max(0, 1 - (prog - 0.75) / 0.25));
+      }
+
+      // 枪模动画（后坐踢 + 行走晃动 + 换弹动作）
       const hSpeed = Math.hypot(player.vel.x, player.vel.z);
       const bobY = Math.sin(player.bobPhase) * Math.min(0.02, hSpeed * 0.004);
       const bobX = Math.cos(player.bobPhase * 0.5) * Math.min(0.016, hSpeed * 0.003);
       const walkIn = player.onGround ? 1 : 0.4;
-      view.position.y = -0.26 + bobY * walkIn - state.kick * 0.4;
+      view.position.y = -0.26 + bobY * walkIn - state.kick * 0.4 - reloadEnv * 0.08;
       view.position.x = 0.3 + bobX * walkIn;
-      view.position.z = -0.45 + state.kick;
-      view.rotation.x = state.kick * 1.2 - bobY * 2.5;
-      view.rotation.z = state.kick * 0.6 + bobX * 2;
+      view.position.z = -0.45 + state.kick + reloadEnv * 0.12;
+      view.rotation.x = state.kick * 1.2 - bobY * 2.5 + reloadEnv * 0.65;
+      view.rotation.z = state.kick * 0.6 + bobX * 2 + reloadEnv * 0.18;
 
       // 显示当前武器
       for (const k in models) models[k].visible = (k === state.current);
