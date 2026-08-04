@@ -51,12 +51,22 @@ export const HOSTAGES = (function () {
 
     function update(dt) {
       const end = deps.getExit();
-      if (!end) return;
+      const player = deps.getPlayer ? deps.getPlayer() : null;
+      if (!player) return;
+      // 玩家已到出口 → 所有已获救人质安全
+      if (end) {
+        const inEnd = (player.x - end.x) ** 2 + (player.z - end.z) ** 2 < end.r * end.r;
+        if (inEnd) {
+          for (const h of list) if (h.freed) h.safe = true;
+          return;
+        }
+      }
+      // 获救人质跟着玩家跑（保持 2.5~3.5 米距离）
       for (const h of list) {
         if (!h.freed || h.safe) continue;
-        const to = new THREE.Vector3(end.x - h.pos.x, 0, end.z - h.pos.z);
+        const to = new THREE.Vector3(player.x - h.pos.x, 0, player.z - h.pos.z);
         const dist = to.length();
-        if (dist < 3) { h.safe = true; continue; }
+        if (dist < 2.5) { continue; } // 已跟上，站住
         let dir = to.normalize();
         if (blocked(h, dir)) {
           for (const a of [0.6, -0.6, 1.2, -1.2, 1.9, -1.9]) {
@@ -64,7 +74,8 @@ export const HOSTAGES = (function () {
             if (!blocked(h, alt)) { dir = alt; break; }
           }
         }
-        const step = dir.multiplyScalar(4.5 * dt);
+        const speed = dist < 4 ? 4.8 : 5.5; // 落后时更快追赶
+        const step = dir.multiplyScalar(speed * dt);
         const r = 0.35;
         const box = { minX: h.pos.x + step.x - r, minY: 0, minZ: h.pos.z + step.z - r, maxX: h.pos.x + step.x + r, maxY: 1.6, maxZ: h.pos.z + step.z + r };
         let hit = false;

@@ -114,7 +114,7 @@ const medkits = MEDKITS.create(scene, {
     UI.healLabel('+30 HP');
   }
 });
-const hostages = HOSTAGES.create(scene, { getExit: () => WORLD.getEndZone() });
+const hostages = HOSTAGES.create(scene, { getExit: () => WORLD.getEndZone(), getPlayer: () => player.pos });
 
 // ---------- 状态机 ----------
 const state = { mode: 'menu', time: 0, shake: 0 };
@@ -486,7 +486,7 @@ function loop(now) {
       between: enemies.getStats().between,
       timer: enemies.getStats().timer
     });
-    UI.updateMinimap(player.pos, player.yaw, enemies.getEnemies().map(m => m.userData.enemy).filter(Boolean));
+    UI.updateMinimap(player.pos, player.yaw, enemies.getEnemies().map(m => m.userData.enemy).filter(Boolean), hostages.list.map(h => h.pos), WORLD.getEndZone());
   }
 
   composer.render();

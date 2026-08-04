@@ -376,12 +376,31 @@ export const UI = (function () {
     ctx.lineWidth = 2;
     ctx.strokeRect(2, 2, 176, 176);
   }
-  function updateMinimap(playerPos, playerYaw, enemies) {
+  function updateMinimap(playerPos, playerYaw, enemies, hostagePositions, endZone) {
     const ctx = els.minimap.getContext('2d');
     ctx.clearRect(0, 0, 180, 180);
     ctx.drawImage(mapCanvas, 0, 0);
     const px = (playerPos.x + MAP_OFF) * MAP_SCALE;
     const py = (playerPos.z + MAP_OFF) * MAP_SCALE;
+    // 出口（绿色目标环）
+    if (endZone) {
+      const ex = (endZone.x + MAP_OFF) * MAP_SCALE;
+      const ey = (endZone.z + MAP_OFF) * MAP_SCALE;
+      ctx.strokeStyle = '#3aff7a';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#3aff7a';
+      ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    // 人质（青色点）
+    if (hostagePositions) {
+      ctx.fillStyle = '#4fd8ff';
+      for (const hp of hostagePositions) {
+        const hx = (hp.x + MAP_OFF) * MAP_SCALE;
+        const hy = (hp.z + MAP_OFF) * MAP_SCALE;
+        ctx.beginPath(); ctx.arc(hx, hy, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
     // 视野线
     ctx.strokeStyle = 'rgba(120,255,160,0.6)';
     ctx.lineWidth = 1;
