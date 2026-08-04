@@ -325,6 +325,7 @@ window.WEAPONS = (function () {
     function toggleZoom() {
       if (!SPECS[state.current].zoomFov) return;
       state.zoomed = !state.zoomed;
+      player.scoped = state.zoomed; // 立即同步，消除首帧晃动
       if (window.UI) UI.showScope(state.zoomed);
       if (!state.zoomed) { if (window.UI) UI.showScope(false); }
     }
