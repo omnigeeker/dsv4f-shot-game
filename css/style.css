@@ -402,6 +402,29 @@ html, body {
 }
 #death-stats .ds-val { color: #9dff4d; font-weight: 800; font-size: 26px; }
 
+/* 出生护盾 */
+#shield-badge {
+  position: absolute;
+  left: 50%; top: 16%;
+  transform: translateX(-50%);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #8fe4ff;
+  background: rgba(10,40,70,0.55);
+  border: 1px solid rgba(120,220,255,0.55);
+  padding: 6px 18px;
+  text-shadow: 0 0 10px rgba(80,200,255,0.9);
+  animation: shieldPulse 1s ease-in-out infinite;
+}
+@keyframes shieldPulse { 0%,100% { box-shadow: 0 0 12px rgba(80,200,255,0.4); } 50% { box-shadow: 0 0 26px rgba(80,200,255,0.8); } }
+#shield-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(80,200,255,0) 52%, rgba(80,190,255,0.2) 100%);
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
 /* 命中提示标签 */
 #hit-label {
   position: absolute;

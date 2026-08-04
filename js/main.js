@@ -56,6 +56,7 @@
     UI.setScreen('death');
     document.exitPointerLock();
   };
+  player.onProtectEnd = () => { if (window.AUDIO) AUDIO.protect(); };
 
   // ---------- 开始 / 重启 ----------
   function resetGame() {
@@ -154,6 +155,7 @@
     if (state.mode === 'playing' || state.mode === 'paused') {
       UI.updateHUD(dt, {
         hp: player.health, armor: player.armor,
+        protect: player.protectT,
         weapons: weapons.getHUD(),
         kills: enemies.getStats().kills,
         wave: enemies.getStats().wave,

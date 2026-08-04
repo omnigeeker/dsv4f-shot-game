@@ -41,6 +41,19 @@ window.UI = (function () {
     document.getElementById('ammo').appendChild(rm);
     els.reloadMsg = rm;
 
+    // 出生护盾提示（动态创建）
+    const sb = document.createElement('div');
+    sb.id = 'shield-badge';
+    sb.className = 'hidden';
+    sb.textContent = '护盾';
+    els.hud.appendChild(sb);
+    els.shieldBadge = sb;
+    const sv = document.createElement('div');
+    sv.id = 'shield-vignette';
+    sv.style.opacity = 0;
+    els.hud.appendChild(sv);
+    els.shieldVignette = sv;
+
     // 小地图：预先绘制静态地图
     const cv = document.createElement('canvas');
     cv.width = cv.height = 180;
@@ -118,6 +131,16 @@ window.UI = (function () {
     // 准星
     els.crosshair.style.setProperty('--gap', hud.crosshairGap + 'px');
     els.crosshair.classList.toggle('hidden', hud.reloading);
+
+    // 出生护盾
+    if (st.protect > 0) {
+      els.shieldBadge.textContent = '护盾 ' + Math.ceil(st.protect) + 's';
+      els.shieldBadge.classList.remove('hidden');
+      els.shieldVignette.style.opacity = 1;
+    } else {
+      els.shieldBadge.classList.add('hidden');
+      els.shieldVignette.style.opacity = 0;
+    }
 
     // 战绩/波次
     els.killsNum.textContent = st.kills;

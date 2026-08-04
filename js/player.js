@@ -19,8 +19,9 @@ window.PLAYER = (function () {
       active: false,
       bobPhase: 0,
       landTime: 0,
+      protectT: 0,
       // 回调（由 main 注入）
-      onFootstep: null, onDamage: null, onDeath: null,
+      onFootstep: null, onDamage: null, onDeath: null, onProtectEnd: null,
       camera, canvas,
       _keys: {},
       _mouseDX: 0, _mouseDY: 0,
@@ -72,6 +73,7 @@ window.PLAYER = (function () {
       p.yaw = yaw; p.pitch = 0;
       p.health = 100; p.armor = 50;
       p.alive = true;
+      p.protectT = 5; // 出生保护
       p.eye = p.eyeTarget = EYE_STAND;
       p.onGround = true;
       camera.rotation.order = 'YXZ';
@@ -84,6 +86,7 @@ window.PLAYER = (function () {
     /* ---------- 受伤 ---------- */
     p.damage = (amount, fromPos) => {
       if (!p.alive) return;
+      if (p.protectT > 0) return; // 出生保护免伤
       let dmg = amount;
       if (p.armor > 0) {
         const absorbed = Math.min(p.armor, dmg * 0.5);
@@ -138,6 +141,12 @@ window.PLAYER = (function () {
     /* ---------- 主更新 ---------- */
     p.update = (dt) => {
       if (!p.alive || !p.active) return;
+
+      // 出生保护倒计时
+      if (p.protectT > 0) {
+        p.protectT = Math.max(0, p.protectT - dt);
+        if (p.protectT === 0 && p.onProtectEnd) p.onProtectEnd();
+      }
 
       // 视角
       const sens = 0.0021;
