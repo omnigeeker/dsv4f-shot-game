@@ -20,6 +20,7 @@ export const WORLD = (function () {
   let currentBloom = { strength: 0.4, radius: 0.5, threshold: 1.0 };
   let currentEndZone = null;
   let currentCheckpoints = [];
+  let currentPathPts = [];
 
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
   const cylGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.3, 12);
@@ -545,6 +546,7 @@ export const WORLD = (function () {
     movingLights.length = 0;
     currentEndZone = null;
     currentCheckpoints = [];
+    currentPathPts = [];
     group = new THREE.Group();
     scene.add(group);
     scene.fog = null;
@@ -556,17 +558,29 @@ export const WORLD = (function () {
    * buildLinear — 单线剧情关卡生成器
    * 一条长廊从出生点通到终点信标；沿途掩体/闸门/敌人/加血包/checkpoint
    * ============================================================ */
+  function samplePath(pts, step) {
+    const out = [];
+    const segLens = [];
+    for (let i = 0; i < pts.length - 1; i++) segLens.push(Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].z - pts[i].z));
+    const total = segLens.reduce((a, b) => a + b, 0);
+    for (let d = 0; d < total - 1; d += step) {
+      let acc = 0, si = 0;
+      while (si < segLens.length - 1 && acc + segLens[si] < d) { acc += segLens[si]; si++; }
+      const a = pts[si], b = pts[si + 1];
+      const t = segLens[si] ? (d - acc) / segLens[si] : 0;
+      out.push({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
+    }
+    out.push({ x: pts[pts.length - 1].x, z: pts[pts.length - 1].z });
+    return out;
+  }
+
   function buildLinear(cfg) {
     scene = cfg.scene;
     clearMap();
     const theme = cfg.theme || 'base';
-    const L = cfg.length || 90;
     const W = cfg.width || 14;
     const H = cfg.height || 7;
     const spawnZ = cfg.spawnZ !== undefined ? cfg.spawnZ : 48;
-    const endZ = spawnZ - L;
-    const halfW = W / 2;
-    const midZ = (spawnZ + endZ) / 2;
     const isDesert = theme === 'desert', isLab = theme === 'lab';
 
     const wallMat = isLab ? mPanel : (isDesert ? mPlaster : mConcrete);
@@ -584,9 +598,9 @@ export const WORLD = (function () {
       const sun = new THREE.DirectionalLight(0xfff3d6, 1.9);
       sun.position.set(40, 70, 20); sun.castShadow = true;
       sun.shadow.mapSize.set(4096, 4096);
-      sun.shadow.camera.left = -50; sun.shadow.camera.right = 50;
-      sun.shadow.camera.top = 50; sun.shadow.camera.bottom = -50;
-      sun.shadow.camera.near = 1; sun.shadow.camera.far = 180; sun.shadow.bias = -0.0004;
+      sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
+      sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
+      sun.shadow.camera.near = 1; sun.shadow.camera.far = 200; sun.shadow.bias = -0.0004;
       addLight(sun);
     } else if (isLab) {
       addLight(new THREE.AmbientLight(0x2a3e6a, 1.2));
@@ -594,12 +608,13 @@ export const WORLD = (function () {
       const key = new THREE.DirectionalLight(0x8ab4ff, 1.2);
       key.position.set(-30, 60, 20); key.castShadow = true;
       key.shadow.mapSize.set(4096, 4096);
-      key.shadow.camera.left = -50; key.shadow.camera.right = 50;
-      key.shadow.camera.top = 50; key.shadow.camera.bottom = -50;
-      key.shadow.camera.near = 1; key.shadow.camera.far = 180; key.shadow.bias = -0.0004;
+      key.shadow.camera.left = -60; key.shadow.camera.right = 60;
+      key.shadow.camera.top = 60; key.shadow.camera.bottom = -60;
+      key.shadow.camera.near = 1; key.shadow.camera.far = 200; key.shadow.bias = -0.0004;
       addLight(key);
-      for (let z = spawnZ; z > endZ; z -= 18) {
-        const l = new THREE.PointLight(0x2fe9ff, 1.2, 22, 1.8); l.position.set(0, 4, z - 9); group.add(l);
+      for (let i = 0; i < 8; i++) {
+        const l = new THREE.PointLight(0x2fe9ff, 1.0, 24, 1.8);
+        l.position.set((i % 2 ? 1 : -1) * 5, 4, spawnZ - 12 * i - 6); group.add(l);
       }
     } else {
       addLight(new THREE.AmbientLight(0x31405e, 1.1));
@@ -607,85 +622,96 @@ export const WORLD = (function () {
       const moon = new THREE.DirectionalLight(0xaabcf0, 1.5);
       moon.position.set(40, 60, 20); moon.castShadow = true;
       moon.shadow.mapSize.set(4096, 4096);
-      moon.shadow.camera.left = -50; moon.shadow.camera.right = 50;
-      moon.shadow.camera.top = 50; moon.shadow.camera.bottom = -50;
-      moon.shadow.camera.near = 1; moon.shadow.camera.far = 180; moon.shadow.bias = -0.0004;
+      moon.shadow.camera.left = -60; moon.shadow.camera.right = 60;
+      moon.shadow.camera.top = 60; moon.shadow.camera.bottom = -60;
+      moon.shadow.camera.near = 1; moon.shadow.camera.far = 200; moon.shadow.bias = -0.0004;
       addLight(moon);
-      addFloodlight(-10, spawnZ - 15, 0, endZ + 40, 0xffd9a0, 6.0, 0.5, 0.2);
-      addFloodlight(10, endZ + 15, 0, spawnZ - 40, 0xffc98a, 6.0, 0.5, 0.2);
+      addFloodlight(-12, spawnZ - 18, -6, -30, 0xffd9a0, 6.0, 0.5, 0.2);
+      addFloodlight(12, -30, 6, -60, 0xffc98a, 6.0, 0.5, 0.2);
     }
     currentExposure = isDesert ? 1.3 : (isLab ? 1.6 : 1.9);
     currentBloom = { strength: isLab ? 0.9 : 0.35, radius: 0.5, threshold: isLab ? 0.85 : 1.0 };
 
-    // 地面（快艇关为水面）
-    let gMat = groundMat;
-    if (cfg.boat) {
-      gMat = new THREE.MeshStandardMaterial({ color: 0x1c4a66, roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.88 });
+    // 路径（cfg.path: [{d:'z'|'-z'|'x'|'-x', l:len}]）→ 折线 waypoints
+    const path = cfg.path && cfg.path.length ? cfg.path : [{ d: 'z', l: 80 }];
+    const pts = [{ x: 0, z: spawnZ }];
+    for (const seg of path) {
+      const last = pts[pts.length - 1];
+      const nx = last.x + (seg.d === 'x' ? seg.l : (seg.d === '-x' ? -seg.l : 0));
+      const nz = last.z + (seg.d === '-z' ? seg.l : (seg.d === 'z' ? -seg.l : 0));
+      pts.push({ x: nx, z: nz });
     }
-    addGround(0, midZ, L + 20, gMat);
-    // 分段走廊：每段宽度由 pattern 决定（房间/窄巷/通道各不相同）
-    const segLen = 14;
-    const segCount = Math.max(1, Math.round(L / segLen));
+    const end = pts[pts.length - 1];
+    currentPathPts = samplePath(pts, 7);
+
+    // 包围盒 → 地面 / 天花板
+    let minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9;
+    for (const p of pts) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z); }
+    const bboxCX = (minX + maxX) / 2, bboxCZ = (minZ + maxZ) / 2;
+    const bboxSize = Math.max(maxX - minX, maxZ - minZ) + 24;
+    addGround(bboxCX, bboxCZ, bboxSize, groundMat);
+
+    // 分段走廊（每段宽度由 pattern 决定，含拐弯）
     const pattern = cfg.pattern && cfg.pattern.length ? cfg.pattern : [W];
     const maxW = Math.max(...pattern.map(x => x || W), W);
-    // 端墙（覆盖最宽段）
-    addWall(0, spawnZ + 0.5, maxW + 4, H, 1, wallMat);
-    addWall(0, endZ - 0.5, maxW + 4, H, 1, wallMat);
-    for (let i = 0; i < segCount; i++) {
-      const segZ = spawnZ - i * segLen - segLen / 2;
+    for (let i = 0; i < path.length; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const len = Math.hypot(b.x - a.x, b.z - a.z);
       const w = pattern[i % pattern.length] || W;
       const hw = w / 2;
-      addWall(-hw - 0.5, segZ, 1, H, segLen + 2, wallMat);
-      addWall(hw + 0.5, segZ, 1, H, segLen + 2, wallMat);
-    }
-    if (cfg.ceiling !== false && !isDesert && !cfg.boat) addBoxNoCollide(0, H + 0.2, midZ, maxW + 2, 0.4, L + 2, wallMat);
-    // 快艇关：点缀礁石/浮标
-    if (cfg.boat) {
-      for (let z = spawnZ - 10; z > endZ + 10; z -= 16) {
-        addCyl((Math.random() * 2 - 1) * 5, 0.5, z, 0.5, 1.0, mStone);
+      const alongZ = Math.abs(b.z - a.z) > Math.abs(b.x - a.x);
+      if (alongZ) {
+        addWall(a.x - hw - 0.5, (a.z + b.z) / 2, 1, H, len + 2, wallMat);
+        addWall(a.x + hw + 0.5, (a.z + b.z) / 2, 1, H, len + 2, wallMat);
+      } else {
+        addWall((a.x + b.x) / 2, a.z - hw - 0.5, len + 2, H, 1, wallMat);
+        addWall((a.x + b.x) / 2, a.z + hw + 0.5, len + 2, H, 1, wallMat);
       }
     }
+    if (cfg.ceiling !== false && !isDesert) addBoxNoCollide(bboxCX, H + 0.2, bboxCZ, maxX - minX + maxW + 8, 0.4, maxZ - minZ + maxW + 8, wallMat);
 
-    // 掩体（木箱/油桶交替）
+    // 沿路径放置：掩体（垂直路径方向侧移）
     const coverEvery = cfg.coverEvery || 12;
-    let n = 0;
-    for (let z = spawnZ - 10; z > endZ + 8; z -= coverEvery) {
-      const side = (n++ % 2 === 0) ? -1 : 1;
-      const cx = side * (halfW * 0.4);
-      if (Math.random() > 0.35) addBox(cx, 1.1, z, 2.2, 2.2, 2.2, mCrate);
-      else addCyl(cx, 0.65, z, 0.6, 1.3, mBarrel);
-      if (Math.random() > 0.7) addBox(-cx, 1.1, z - 2.5, 2.2, 2.2, 2.2, mCrate);
+    const coverPts = samplePath(pts, coverEvery);
+    for (let i = 0; i < coverPts.length; i++) {
+      const p0 = coverPts[Math.max(0, i - 1)], p1 = coverPts[Math.min(coverPts.length - 1, i + 1)];
+      const dx = p1.x - p0.x, dz = p1.z - p0.z, len = Math.hypot(dx, dz) || 1;
+      const side = (i % 2 === 0) ? 1 : -1;
+      const cx = coverPts[i].x + (-dz / len) * side * 3;
+      const cz = coverPts[i].z + (dx / len) * side * 3;
+      if (Math.random() > 0.35) addBox(cx, 1.1, cz, 2.2, 2.2, 2.2, mCrate);
+      else addCyl(cx, 0.65, cz, 0.6, 1.3, mBarrel);
     }
-    // 闸门（chokepoint 柱子）
+    // 闸门（chokepoint 柱子，垂直路径方向）
     const gateEvery = cfg.gateEvery || 20;
-    for (let z = spawnZ - gateEvery; z > endZ; z -= gateEvery) {
-      addBox(-halfW * 0.7, 1.5, z, 1.5, 3, 1.5, wallMat);
-      addBox(halfW * 0.7, 1.5, z, 1.5, 3, 1.5, wallMat);
+    const gatePts = samplePath(pts, gateEvery);
+    for (let i = 0; i < gatePts.length; i++) {
+      const p0 = gatePts[Math.max(0, i - 1)], p1 = gatePts[Math.min(gatePts.length - 1, i + 1)];
+      const dx = p1.x - p0.x, dz = p1.z - p0.z, len = Math.hypot(dx, dz) || 1;
+      addBox(gatePts[i].x + (-dz / len) * 3.2, 1.5, gatePts[i].z + (dx / len) * 3.2, 1.5, 3, 1.5, wallMat);
+      addBox(gatePts[i].x - (-dz / len) * 3.2, 1.5, gatePts[i].z - (dx / len) * 3.2, 1.5, 3, 1.5, wallMat);
     }
-    // 敌人出生点（每段一个）
+    // 敌人出生点 / checkpoint / 加血包
     const roomEvery = cfg.roomEvery || 14;
-    for (let z = spawnZ - roomEvery / 2; z > endZ + roomEvery / 2; z -= roomEvery) {
-      enemySpawnPoints.push(new THREE.Vector3(0, 0, z));
-    }
-    // checkpoint（每 2 段一个）
+    for (const p of samplePath(pts, roomEvery)) enemySpawnPoints.push(new THREE.Vector3(p.x, 0, p.z));
     const cpEvery = cfg.checkpointEvery || (roomEvery * 2);
-    for (let z = spawnZ - cpEvery; z > endZ + cpEvery / 2; z -= cpEvery) {
-      currentCheckpoints.push({ x: 0, z });
-    }
-    // 加血包
-    for (let z = spawnZ - 20; z > endZ + 12; z -= 24) medkitPoints.push({ x: 0, z });
+    for (const p of samplePath(pts, cpEvery)) currentCheckpoints.push({ x: p.x, z: p.z });
+    for (const p of samplePath(pts, 24)) medkitPoints.push({ x: p.x, z: p.z });
 
     // 终点信标
-    currentEndZone = { x: 0, z: endZ, r: 4 };
+    currentEndZone = { x: end.x, z: end.z, r: 4 };
     const beacon = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.5, 0.3, 24),
       new THREE.MeshBasicMaterial({ color: 0x3aff7a, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
-    beacon.position.set(0, 0.2, endZ);
+    beacon.position.set(end.x, 0.2, end.z);
     group.add(beacon);
     const beaconLight = new THREE.PointLight(0x3aff7a, 2, 15, 2);
-    beaconLight.position.set(0, 4, endZ);
+    beaconLight.position.set(end.x, 4, end.z);
     group.add(beaconLight);
 
-    currentPlayerSpawn = { pos: new THREE.Vector3(0, 0, spawnZ - 3), yaw: 0 };
+    // 出生点朝第一段方向
+    const first = pts[1];
+    const yaw = Math.atan2(-(first.x - pts[0].x), -(first.z - pts[0].z));
+    currentPlayerSpawn = { pos: new THREE.Vector3(0, 0, spawnZ - 1), yaw };
   }
 
   /* ---------- 更新（探照灯扫描） ---------- */
@@ -724,6 +750,7 @@ export const WORLD = (function () {
     get medkitPoints() { return medkitPoints; },
     getPlayerSpawn() { return currentPlayerSpawn; },
     getEndZone() { return currentEndZone; },
-    getCheckpoints() { return currentCheckpoints; }
+    getCheckpoints() { return currentCheckpoints; },
+    getPathPoints() { return currentPathPts; }
   };
 })();

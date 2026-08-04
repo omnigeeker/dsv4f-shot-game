@@ -17,6 +17,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { loadPBR } from './pbr.js';
 import { MISSION } from './mission.js';
 import { VEHICLE } from './vehicle.js';
+import { HOSTAGES } from './hostages.js';
 
 // ---------- 渲染器 / 场景 / 相机 ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -113,6 +114,7 @@ const medkits = MEDKITS.create(scene, {
     UI.healLabel('+30 HP');
   }
 });
+const hostages = HOSTAGES.create(scene, { getExit: () => WORLD.getEndZone() });
 
 // ---------- 状态机 ----------
 const state = { mode: 'menu', time: 0, shake: 0 };
@@ -240,7 +242,7 @@ function placeRescueMarkers() {
 }
 
 function buildCampaignMap(def) {
-  if (def.linear) WORLD.buildLinear({ scene, theme: def.theme, length: def.length, boat: def.type === 'boat', width: def.type === 'boat' ? 16 : 14, ceiling: def.theme !== 'desert', pattern: def.pattern });
+  if (def.linear) WORLD.buildLinear({ scene, theme: def.theme, length: def.length, ceiling: def.theme !== 'desert', pattern: def.pattern, path: def.path });
   else WORLD.loadMap(scene, def.map);
 }
 
@@ -259,9 +261,9 @@ function startCampaign(levelIdx, difficulty) {
   MISSION.preplaceEnemies(enemies);
   medkits.reset();
   if (isVehicleLevel(def)) createVehicle(def);
-  if (def.type === 'rescue') placeRescueMarkers();
+  if (def.type === 'rescue') { placeRescueMarkers(); hostages.place(MISSION.getRescueAt()); }
   UI.setMissionHUD(MISSION.getHUD());
-  UI.showBriefing('第 ' + def.id + ' 关 · ' + def.title, def.subtitle + '。\n敌人分布在通道各处巡逻——进入视野或发出枪声才会被发现。开局有护盾，检查点处阵亡将满血重生。', () => beginPlay());
+  UI.showBriefing('第 ' + def.id + ' 关 · ' + def.title, def.subtitle + '。\n敌人分布在弯道各处巡逻——进入视野或发出枪声才会被发现。走近人质即可解救，人质会自己跑向出口。开局有护盾，检查点处阵亡将满血重生。', () => beginPlay());
 }
 function resumeCampaign() {
   const g = MISSION.getSavedGame();
@@ -279,7 +281,7 @@ function resumeCampaign() {
   MISSION.preplaceEnemies(enemies);
   medkits.reset();
   if (isVehicleLevel(def)) createVehicle(def);
-  if (def.type === 'rescue') placeRescueMarkers();
+  if (def.type === 'rescue') { placeRescueMarkers(); hostages.place(MISSION.getRescueAt()); }
   const cps = WORLD.getCheckpoints();
   const cp = g.checkpoint >= 0 && cps[g.checkpoint] ? cps[g.checkpoint] : null;
   if (cp) player.setSpawn(cp.x, cp.z, Math.atan2(-(0 - cp.x), -(0 - cp.z)));
@@ -298,6 +300,7 @@ function nextCampaignLevel() {
 }
 function toMenu() {
   disposeVehicle();
+  hostages.reset();
   MISSION.reset();
   gameMode = 'arena';
   state.mode = 'menu';
@@ -422,9 +425,11 @@ function loop(now) {
     enemies.update(dt);
     medkits.update(dt);
     if (gameMode === 'campaign') {
+      if (MISSION.currentLevel() && MISSION.currentLevel().type === 'rescue') hostages.update(dt);
       MISSION.update(dt, {
-        enemies, player, vehicle,
-        onRescue: (f, n) => UI.checkpointToast('已拯救 ' + f + '/' + n + ' 人质'),
+        enemies, player, vehicle, hostages,
+        onRescuePoint: (i) => hostages.free(i),
+        onRescue: (f, n) => UI.checkpointToast('已解救 ' + f + '/' + n + ' 人质，他们正跑向出口'),
         onCheckpoint: (i, total) => UI.checkpointToast('检查点 ' + i + '/' + total + ' 已激活'),
         onWin: (def, diff) => {
           weapons.setActive(false);
@@ -449,8 +454,9 @@ function loop(now) {
           pct = mh.max ? w / mh.max * 100 : 0;
           txt = '波次 ' + w + ' / ' + mh.max;
         } else if (mh.type === 'rescue') {
-          pct = mh.max ? mh.freed / mh.max * 100 : 0;
-          txt = '拯救 ' + mh.freed + ' / ' + mh.max + (mh.freed >= mh.max ? ' · 前往撤离点' : '');
+          const safe = hostages ? hostages.getSafeCount() : 0;
+          pct = mh.max ? Math.max(mh.freed, safe) / mh.max * 100 : 0;
+          txt = '解救 ' + mh.freed + ' / ' + mh.max + ' · 安全撤离 ' + safe + ' / ' + mh.max;
         } else if (mh.type === 'reach' || mh.type === 'tank' || mh.type === 'boat') {
           const end = WORLD.getEndZone();
           if (end) {
@@ -488,7 +494,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // ---------- 调试句柄（也用于无头测试） ----------
-window.__game = { player, weapons, enemies, medkits, scene, camera, renderer, setSelectedMap, get vehicle() { return vehicle; }, get vehInput() { return vehInput; }, get state() { return state; } };
+window.__game = { player, weapons, enemies, medkits, hostages, scene, camera, renderer, setSelectedMap, get vehicle() { return vehicle; }, get vehInput() { return vehInput; }, get state() { return state; } };
 window.THREE = THREE;
 window.WORLD = WORLD;
 window.AUDIO = AUDIO;

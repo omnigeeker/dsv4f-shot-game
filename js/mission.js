@@ -9,16 +9,16 @@ import { WORLD } from './world.js';
 const KEY = 'dsv4f_campaign_v1';
 
 export const LEVELS = [
-  { id: 1, title: '潜入基地', subtitle: '穿过基地通道，抵达撤离点', theme: 'base', linear: true, type: 'reach', length: 70, enemies: 8, pattern: [12, 12, 16, 12, 12, 16] },
-  { id: 2, title: '拯救人质', subtitle: '救出被困人质，护送撤离', theme: 'base', linear: true, type: 'rescue', length: 80, target: 2, enemies: 10, pattern: [14, 20, 14, 14, 20, 14] },
-  { id: 3, title: '沙漠公路', subtitle: '驾驶坦克突破公路防线', theme: 'desert', linear: true, type: 'tank', length: 90, enemies: 12, pattern: [18, 18, 18, 18, 18, 18] },
-  { id: 4, title: '小镇突击', subtitle: '单线清剿小镇武装分子', theme: 'desert', linear: true, type: 'kill', length: 70, enemies: 12, pattern: [11, 16, 11, 16, 11, 16, 11] },
-  { id: 5, title: '河流强袭', subtitle: '乘机枪快艇沿河扫射', theme: 'desert', linear: true, type: 'boat', length: 90, enemies: 14, pattern: [16] },
-  { id: 6, title: '实验室渗透', subtitle: '穿过霓虹实验室核心', theme: 'lab', linear: true, type: 'reach', length: 80, enemies: 14, pattern: [13, 13, 18, 13, 13, 18] },
-  { id: 7, title: '霓虹突围', subtitle: '救出研究员并完成撤离', theme: 'lab', linear: true, type: 'rescue', length: 90, target: 2, enemies: 16, pattern: [15, 22, 15, 15, 22, 15] },
-  { id: 8, title: '钢铁反攻', subtitle: '重装坦克全面反攻', theme: 'base', linear: true, type: 'tank', length: 110, enemies: 18, pattern: [20, 20, 20, 20, 20, 20] },
-  { id: 9, title: '最终防线', subtitle: '推进至核心，坚守 3 波', theme: 'lab', linear: true, type: 'waves', length: 90, target: 3, enemies: 0, pattern: [14, 10, 14, 10, 14, 10, 14, 10] },
-  { id: 10, title: '首脑', subtitle: '深入基地，击败恐怖分子首领', theme: 'base', linear: true, type: 'boss', length: 100, enemies: 8, pattern: [16, 16, 16, 16, 16, 26] }
+  { id: 1, title: '潜入基地', subtitle: '穿过拐弯的基地通道，抵达撤离点', theme: 'base', linear: true, type: 'reach', enemies: 8, pattern: [12, 12, 16, 12, 12, 16], path: [{ d: 'z', l: 20 }, { d: 'x', l: 12 }, { d: 'z', l: 18 }, { d: 'x', l: 12 }, { d: 'z', l: 20 }] },
+  { id: 2, title: '拯救人质', subtitle: '救出人质并护送撤离', theme: 'base', linear: true, type: 'rescue', target: 2, enemies: 10, pattern: [14, 20, 14, 14, 20, 14], path: [{ d: 'z', l: 16 }, { d: '-x', l: 14 }, { d: 'z', l: 16 }, { d: 'x', l: 14 }, { d: 'z', l: 16 }] },
+  { id: 3, title: '沙漠巡逻', subtitle: '沿蜿蜒土路清剿武装分子', theme: 'desert', linear: true, type: 'kill', enemies: 14, pattern: [11, 16, 11, 16, 11], path: [{ d: 'z', l: 18 }, { d: 'x', l: 16 }, { d: 'z', l: 18 }, { d: '-x', l: 14 }, { d: 'z', l: 16 }] },
+  { id: 4, title: '小镇突围', subtitle: '穿过交错巷道抵达撤离点', theme: 'desert', linear: true, type: 'reach', enemies: 12, pattern: [12, 12, 16, 12, 12, 16], path: [{ d: 'z', l: 14 }, { d: 'x', l: 10 }, { d: 'z', l: 14 }, { d: 'x', l: 10 }, { d: 'z', l: 14 }] },
+  { id: 5, title: '实验室渗透', subtitle: '在霓虹管道中清剿守军', theme: 'lab', linear: true, type: 'kill', enemies: 14, pattern: [13, 13, 18, 13, 13, 18], path: [{ d: 'z', l: 16 }, { d: '-x', l: 12 }, { d: 'z', l: 16 }, { d: '-x', l: 12 }, { d: 'z', l: 16 }] },
+  { id: 6, title: '霓虹潜入', subtitle: '穿过实验室核心抵达终点', theme: 'lab', linear: true, type: 'reach', enemies: 12, pattern: [13, 13, 18, 13, 13, 18], path: [{ d: 'z', l: 14 }, { d: 'x', l: 12 }, { d: 'z', l: 14 }, { d: 'x', l: 12 }, { d: 'z', l: 14 }, { d: 'x', l: 12 }] },
+  { id: 7, title: '基地伏击', subtitle: '在弯道阵地坚守 2 波', theme: 'base', linear: true, type: 'waves', target: 2, enemies: 0, pattern: [14, 10, 14, 10, 14], path: [{ d: 'z', l: 16 }, { d: '-x', l: 14 }, { d: 'z', l: 16 }, { d: 'x', l: 14 }, { d: 'z', l: 16 }, { d: '-x', l: 14 }] },
+  { id: 8, title: '沙漠救援', subtitle: '救出被困人员并撤离', theme: 'desert', linear: true, type: 'rescue', target: 2, enemies: 12, pattern: [15, 22, 15, 15, 22, 15], path: [{ d: 'z', l: 18 }, { d: 'x', l: 14 }, { d: 'z', l: 18 }, { d: '-x', l: 14 }, { d: 'z', l: 18 }] },
+  { id: 9, title: '最终防线', subtitle: '穿越窄门迷宫，坚守 3 波', theme: 'lab', linear: true, type: 'waves', target: 3, enemies: 0, pattern: [14, 10, 14, 10, 14, 10, 14, 10], path: [{ d: 'z', l: 14 }, { d: 'x', l: 10 }, { d: 'z', l: 14 }, { d: 'x', l: 10 }, { d: 'z', l: 14 }, { d: 'x', l: 10 }, { d: 'z', l: 14 }] },
+  { id: 10, title: '首脑', subtitle: '穿过曲折通道，击败恐怖分子首领', theme: 'base', linear: true, type: 'boss', enemies: 8, pattern: [16, 16, 16, 16, 16, 26], path: [{ d: 'z', l: 18 }, { d: 'x', l: 16 }, { d: 'z', l: 20 }, { d: 'x', l: 16 }, { d: 'z', l: 24 }] }
 ];
 
 export const MISSION = (function () {
@@ -62,12 +62,18 @@ export const MISSION = (function () {
 
   function makeRescuePoints(def) {
     const n = def.target || 2;
-    const pts = [];
-    const start = 44, end = -(def.length - 48);
-    for (let i = 0; i < n; i++) {
-      const t = (i + 1) / (n + 1);
-      pts.push({ x: 0, z: start + (end - start) * t });
+    const pathPts = WORLD.getPathPoints();
+    if (pathPts && pathPts.length > 3) {
+      const pts = [];
+      for (let i = 0; i < n; i++) {
+        const idx = Math.min(pathPts.length - 1, Math.floor(pathPts.length * (i + 1) / (n + 1)));
+        pts.push({ x: pathPts[idx].x, z: pathPts[idx].z });
+      }
+      return pts;
     }
+    // 回退
+    const pts = [];
+    for (let i = 0; i < n; i++) pts.push({ x: 0, z: 40 - (i + 1) * 15 });
     return pts;
   }
 
@@ -115,13 +121,19 @@ export const MISSION = (function () {
     if (type === 'reach') {
       if (inEnd) win(ctx);
     } else if (type === 'rescue') {
+      // 走近人质 → 获救（人质自己跑向出口）
       for (let i = 0; i < cur.rescueAt.length; i++) {
         if (cur.rescueAt[i].freed) continue;
         const p = cur.rescueAt[i];
         const dx = player.pos.x - p.x, dz = player.pos.z - p.z;
-        if (dx * dx + dz * dz < 20) { cur.rescueAt[i].freed = true; cur.freed++; if (ctx.onRescue) ctx.onRescue(cur.freed, cur.rescueAt.length); }
+        if (dx * dx + dz * dz < 25) {
+          cur.rescueAt[i].freed = true; cur.freed++;
+          if (ctx.onRescuePoint) ctx.onRescuePoint(i);
+          if (ctx.onRescue) ctx.onRescue(cur.freed, cur.rescueAt.length);
+        }
       }
-      if (cur.freed >= def.target && inEnd) win(ctx);
+      // 所有获救的人质都安全到达出口才通关
+      if (ctx.hostages && ctx.hostages.getSafeCount() >= def.target) win(ctx);
     } else if (type === 'kill') {
       if (kills >= cur.totalEnemies && st.alive === 0) win(ctx);
     } else if (type === 'waves') {
