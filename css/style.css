@@ -425,6 +425,26 @@ html, body {
   transition: opacity 0.3s;
 }
 
+/* 加血提示 */
+#heal-label {
+  position: absolute;
+  left: 50%; top: 44%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #7dff9a;
+  text-shadow: 0 0 12px rgba(60,255,120,0.9);
+  opacity: 0;
+  z-index: 15;
+}
+#heal-label.show { animation: healPop 0.9s ease-out; }
+@keyframes healPop {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.7); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -20px); }
+}
+
 /* 命中提示标签 */
 #hit-label {
   position: absolute;

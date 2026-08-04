@@ -100,6 +100,7 @@ window.PLAYER = (function () {
         if (p.onDeath) p.onDeath();
       }
     };
+    p.heal = (amount) => { if (p.alive) p.health = Math.min(100, p.health + amount); };
 
     /* ---------- 碰撞 ---------- */
     function overlap(a, b) {

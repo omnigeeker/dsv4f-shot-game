@@ -192,6 +192,19 @@ window.UI = (function () {
     void el.offsetWidth;
     el.classList.add('show');
   }
+  /* ---------- 加血提示 ---------- */
+  function healLabel(text) {
+    let el = document.getElementById('heal-label');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'heal-label';
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+  }
 
   /* ---------- 波次横幅 ---------- */
   function waveBanner(n) {
@@ -272,5 +285,5 @@ window.UI = (function () {
 
   function rebuildMinimap() { if (mapCtx) drawMapStatic(); }
 
-  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap };
+  return { init, setHandlers, setScreen, updateHUD, damage, hitmarker, hitLabel, healLabel, waveBanner, killfeed, death, updateMinimap, rebuildMinimap };
 })();

@@ -40,6 +40,15 @@
       if (killed) UI.killfeed('<span class="kf-kill">+击杀</span> 恐怖分子');
     }
   });
+  const medkits = MEDKITS.create(scene, {
+    player,
+    onPickup: (point) => {
+      player.heal(30);
+      if (window.AUDIO) AUDIO.pickup();
+      if (window.WEAPONS && WEAPONS.instance) WEAPONS.instance.spawnBurst(new THREE.Vector3(point.x, 1, point.z), 0x3aff7a, 10, 2.0, 0.5, 0.5, 1);
+      UI.healLabel('+30 HP');
+    }
+  });
 
   // ---------- 状态机 ----------
   const state = { mode: 'menu', time: 0, shake: 0 };
@@ -77,6 +86,7 @@
     WORLD.loadMap(scene, selectedMap);
     UI.rebuildMinimap();
     resetGame();
+    medkits.reset();
     enemies.startWave();
     weapons.setActive(true);
     player.active = true;
@@ -147,6 +157,7 @@
         camera.position.y += (Math.random() - 0.5) * state.shake * 0.2;
       }
       enemies.update(dt);
+      medkits.update(dt);
     }
 
     weapons.update(dt);
@@ -171,5 +182,5 @@
   requestAnimationFrame(loop);
 
   // 调试句柄
-  window.__game = { player, weapons, enemies, scene, camera, renderer, setSelectedMap, get state() { return state; } };
+  window.__game = { player, weapons, enemies, medkits, scene, camera, renderer, setSelectedMap, get state() { return state; } };
 })();
