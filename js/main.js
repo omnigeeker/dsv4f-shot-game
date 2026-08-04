@@ -9,6 +9,11 @@ import { ENEMIES } from './enemies.js';
 import { MEDKITS } from './medkits.js';
 import { UI } from './ui.js';
 import { AUDIO } from './audio.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ---------- 渲染器 / 场景 / 相机 ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -24,6 +29,18 @@ document.getElementById('game').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.08, 700);
 camera.rotation.order = 'YXZ';
+
+// ---------- 后期处理（环境光遮蔽 + 辉光 + 输出色调） ----------
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+composer.setSize(window.innerWidth, window.innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+const gtaoPass = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight);
+gtaoPass.updateGtaoMaterial({ radius: 0.4, distanceExponent: 1.0, thickness: 1.0, scale: 0.5, samples: 10, screenSpaceRadius: false });
+composer.addPass(gtaoPass);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.5, 1.0);
+composer.addPass(bloomPass);
+composer.addPass(new OutputPass());
 
 // ---------- 世界（默认加载第一张图做菜单背景） ----------
 let selectedMap = 0;
@@ -150,7 +167,7 @@ document.addEventListener('pointerlockchange', () => {
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
 // ---------- 主循环 ----------
@@ -190,7 +207,7 @@ function loop(now) {
     UI.updateMinimap(player.pos, player.yaw, enemies.getEnemies().map(m => m.userData.enemy).filter(Boolean));
   }
 
-  renderer.render(scene, camera);
+  composer.render();
 }
 requestAnimationFrame(loop);
 
