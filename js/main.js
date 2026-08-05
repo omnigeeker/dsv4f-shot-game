@@ -93,7 +93,10 @@ const enemies = ENEMIES.create(scene, {
     UI.waveBanner(n);
     player.protectT = Math.max(player.protectT, 3); // 每波开局 3 秒免伤
   },
-  onKill: () => UI.killfeed('<span class="kf-kill">击毙</span> 恐怖分子')
+  onKill: (bot) => {
+    UI.killfeed('<span class="kf-kill">击毙</span> 恐怖分子');
+    if (dropOnKill && bot) medkits.drop(bot.pos); // 每杀一个掉回血箱
+  }
 });
 const weapons = WEAPONS.create(camera, scene, {
   player,
@@ -130,6 +133,7 @@ player.onDamage = (fromPos) => {
   state.shake = 0.16;
 };
 let gameMode = 'arena'; // 'arena' | 'campaign'
+let dropOnKill = false; // 击杀掉回血箱（剧情简单 / 场景前 2 波）
 
 player.onDeath = () => {
   weapons.setActive(false);
@@ -166,6 +170,7 @@ function resetGame(spawnPos) {
 // ---------- 场景模式 ----------
 function startGame() {
   gameMode = 'arena';
+  dropOnKill = true; // 场景模式前 2 波击杀掉血箱
   AUDIO.ensure();
   WORLD.loadMap(scene, selectedMap);
   applyLightingProfile();
@@ -248,6 +253,7 @@ function buildCampaignMap(def) {
 
 function startCampaign(levelIdx, difficulty) {
   gameMode = 'campaign';
+  dropOnKill = difficulty < 1.4; // 剧情简单难度击杀掉血箱
   AUDIO.ensure();
   UI.setScreenHidden('victory', true); // 修复：进入下一关时先隐藏胜利界面
   const def = MISSION.LEVELS[levelIdx];
@@ -394,6 +400,7 @@ function loop(now) {
 
   if (state.mode === 'playing') {
     state.time += dt;
+    if (gameMode === 'arena') dropOnKill = enemies.getStats().wave <= 2; // 前 2 波击杀掉血箱
     if (vehicle && !vehicle.destroyed) {
       // 载具输入 + 第三人称相机
       vehInput.forward = !!(player._keys['KeyW'] || player._keys['ArrowUp']);

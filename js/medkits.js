@@ -7,7 +7,7 @@ import { WORLD } from './world.js';
 
 export const MEDKITS = (function () {
 
-  function buildKit(scene, point, list) {
+  function buildKit(scene, point, list, isDrop) {
     const g = new THREE.Group();
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.5, 0.4, 0.5),
@@ -31,7 +31,7 @@ export const MEDKITS = (function () {
     g.add(light);
     g.position.set(point.x, 0.5, point.z);
     scene.add(g);
-    list.push({ group: g, point, t: Math.random() * 6, light });
+    list.push({ group: g, point, t: Math.random() * 6, light, isDrop: !!isDrop });
     return g;
   }
 
@@ -45,6 +45,10 @@ export const MEDKITS = (function () {
       medkits.length = 0;
       respawnQueue.length = 0;
       for (const p of WORLD.medkitPoints) buildKit(scene, p, medkits);
+    }
+
+    function drop(point) { // 击杀掉落的回血箱（拾取后不重生）
+      buildKit(scene, { x: point.x, z: point.z }, medkits, true);
     }
 
     function update(dt) {
@@ -62,7 +66,7 @@ export const MEDKITS = (function () {
           scene.remove(m.group);
           medkits.splice(i, 1);
           if (onPickup) onPickup(m.point);
-          respawnQueue.push({ point: m.point, t: 20 });
+          if (!m.isDrop) respawnQueue.push({ point: m.point, t: 20 });
         }
       }
       // 重生
@@ -73,7 +77,7 @@ export const MEDKITS = (function () {
       }
     }
 
-    return { update, reset };
+    return { update, reset, drop, get list() { return medkits; } };
   }
 
   return { create };
